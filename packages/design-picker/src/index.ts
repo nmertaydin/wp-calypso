@@ -1,11 +1,9 @@
-/**
- * Internal dependencies
- */
 export { default } from './components';
+
 export { default as MShotsImage } from './components/mshots-image';
 export {
-	getAvailableDesigns,
 	availableDesignsConfig,
+	getAvailableDesigns,
 	getFontTitle,
 	isBlankCanvasDesign,
 } from './utils';
