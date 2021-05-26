@@ -102,10 +102,10 @@ export const removeP2SignupClassName = function () {
 export default {
 	redirectTests( context, next ) {
 		const currentFlowName = getFlowName( context.params );
-		currentFlowName === 'onboarding' && loadExperimentAssignment( 'refined_reskin_v2' );
+
 		if ( context.pathname.indexOf( 'new-launch' ) >= 0 ) {
 			next();
-		} else if ( currentFlowName === 'onboarding' ) {
+		} else if ( currentFlowName === 'onboarding' && config.isEnabled( 'signup/reskin' ) ) {
 			next();
 		} else if (
 			context.pathname.indexOf( 'domain' ) >= 0 ||
