@@ -166,6 +166,7 @@
 		"signup/ecommerce-flow": true,
 		"signup/full-site-editing": true,
 		"signup/import": true,
+		"signup/reskin": false,
 		"signup/onboarding-flow": true,
 		"signup/social": true,
 		"signup/social-management": true,

@@ -118,6 +118,7 @@
 		"signup/social-management": true,
 		"signup/atomic-store-flow": true,
 		"signup/ecommerce-flow": false,
+		"signup/reskin": false,
 		"signup/wpcc": true,
 		"signup/wpforteams": true,
 		"site-indicator": true,
