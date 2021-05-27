@@ -54,7 +54,6 @@ import { Button } from '@automattic/components';
 import FormattedHeader from 'calypso/components/formatted-header';
 import HappychatConnection from 'calypso/components/happychat/connection-connected';
 import isHappychatAvailable from 'calypso/state/happychat/selectors/is-happychat-available';
-import { getDiscountByName } from 'calypso/lib/discounts';
 import { getDomainsBySiteId } from 'calypso/state/sites/domains/selectors';
 import {
 	getSitePlan,
@@ -62,9 +61,9 @@ import {
 	isJetpackSite,
 	isJetpackSiteMultiSite,
 } from 'calypso/state/sites/selectors';
+import isAtomicSite from 'calypso/state/selectors/is-site-wpcom-atomic';
 import getPreviousRoute from 'calypso/state/selectors/get-previous-route';
 import { getTld } from 'calypso/lib/domains';
-import { isDiscountActive } from 'calypso/state/selectors/get-active-discount.js';
 import { selectSiteId as selectHappychatSiteId } from 'calypso/state/help/actions';
 import PlanTypeSelector from './plan-type-selector';
 
@@ -320,13 +319,7 @@ export class PlansFeaturesMain extends Component {
 	}
 
 	getVisiblePlansForPlanFeatures( availablePlans ) {
-		const {
-			customerType,
-			selectedPlan,
-			plansWithScroll,
-			withWPPlanTabs,
-			isAllPaidPlansShown,
-		} = this.props;
+		const { customerType, selectedPlan, plansWithScroll, isAllPaidPlansShown } = this.props;
 
 		const isPlanOneOfType = ( plan, types ) =>
 			types.filter( ( type ) => planMatches( plan, { type } ) ).length > 0;
@@ -359,7 +352,7 @@ export class PlansFeaturesMain extends Component {
 
 		const withIntervalSelector = this.getKindOfPlanTypeSelector( this.props ) === 'interval';
 
-		if ( ! withWPPlanTabs || isAllPaidPlansShown || withIntervalSelector ) {
+		if ( isAllPaidPlansShown || withIntervalSelector ) {
 			return plans.filter( ( plan ) =>
 				isPlanOneOfType( plan, [ TYPE_PERSONAL, TYPE_PREMIUM, TYPE_BUSINESS, TYPE_ECOMMERCE ] )
 			);
@@ -417,15 +410,7 @@ export class PlansFeaturesMain extends Component {
 	}
 
 	getKindOfPlanTypeSelector( props ) {
-		if ( props.isInSignup || props.eligibleForWpcomMonthlyPlans || props.redirectToAddDomainFlow ) {
-			return 'interval';
-		}
-
-		if ( props.withWPPlanTabs && ! props.hidePersonalPlan ) {
-			return 'customer';
-		}
-
-		return 'interval';
+		return props.planTypeSelector;
 	}
 
 	render() {
@@ -504,12 +489,12 @@ PlansFeaturesMain.propTypes = {
 	showFAQ: PropTypes.bool,
 	siteId: PropTypes.number,
 	siteSlug: PropTypes.string,
-	withWPPlanTabs: PropTypes.bool,
 	isAllPaidPlansShown: PropTypes.bool,
 	plansWithScroll: PropTypes.bool,
 	planTypes: PropTypes.array,
 	customHeader: PropTypes.node,
 	isReskinned: PropTypes.bool,
+	planTypeSelector: PropTypes.string,
 };
 
 PlansFeaturesMain.defaultProps = {
@@ -522,9 +507,9 @@ PlansFeaturesMain.defaultProps = {
 	showFAQ: true,
 	siteId: null,
 	siteSlug: '',
-	withWPPlanTabs: false,
 	plansWithScroll: false,
 	isReskinned: false,
+	planTypeSelector: 'interval',
 };
 
 export default connect(
@@ -533,7 +518,9 @@ export default connect(
 		const currentPlan = getSitePlan( state, siteId );
 		const sitePlanSlug = currentPlan?.product_slug;
 		const eligibleForWpcomMonthlyPlans =
-			isWpComFreePlan( sitePlanSlug ) || isWpComMonthlyPlan( sitePlanSlug );
+			( isAtomicSite( state, siteId ) && sitePlanSlug === 'jetpack_free' ) ||
+			isWpComFreePlan( sitePlanSlug ) ||
+			isWpComMonthlyPlan( sitePlanSlug );
 
 		const customerType = chooseDefaultCustomerType( {
 			currentCustomerType: props.customerType,
@@ -542,11 +529,6 @@ export default connect(
 		} );
 
 		return {
-			// This is essentially a hack - discounts are the only endpoint that we can rely on both on /plans and
-			// during the signup, and we're going to remove the code soon after the test. Also, since this endpoint is
-			// pretty versatile, we could rename it from discounts to flags/features/anything else and make it more
-			// universal.
-			withWPPlanTabs: isDiscountActive( getDiscountByName( 'new_plans' ), state ),
 			customerType,
 			domains: getDomainsBySiteId( state, siteId ),
 			isChatAvailable: isHappychatAvailable( state ),
