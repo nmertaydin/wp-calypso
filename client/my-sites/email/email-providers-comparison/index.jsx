@@ -48,6 +48,7 @@ import {
 	hasGSuiteSupportedDomain,
 } from 'calypso/lib/gsuite';
 import { hasDiscount } from 'calypso/components/gsuite/gsuite-price';
+import { hasEmailForwards } from 'calypso/lib/domains/email-forwarding';
 import getCurrentRoute from 'calypso/state/selectors/get-current-route';
 import { getSelectedSiteId, getSelectedSiteSlug } from 'calypso/state/ui/selectors';
 import { getTitanProductName } from 'calypso/lib/titan';
@@ -99,13 +100,12 @@ class EmailProvidersComparison extends React.Component {
 		super( props );
 
 		const isDomainEligibleForEmail = this.isDomainEligibleForEmail( props.domain );
-		const hasEmailForwards = this.doesDomainHaveEmailForwards( props.domain );
 
 		this.state = {
 			googleUsers: [],
 			titanMailboxes: [ buildNewTitanMailbox( props.domain.name, false ) ],
 			expanded: {
-				forwarding: hasEmailForwards && ! isDomainEligibleForEmail,
+				forwarding: hasEmailForwards( props.domain ) && ! isDomainEligibleForEmail,
 				google: false,
 				titan: isDomainEligibleForEmail,
 			},
@@ -260,11 +260,9 @@ class EmailProvidersComparison extends React.Component {
 	renderEmailForwardingCard() {
 		const { domain, translate } = this.props;
 
-		const showExpandButton =
-			this.doesDomainHaveEmailForwards( domain ) || this.isDomainEligibleForEmail( domain );
-		const buttonLabel = this.doesDomainHaveEmailForwards( domain )
-			? translate( 'Manage email forwarding' )
-			: translate( 'Add email forwarding' );
+		if ( hasEmailForwards( domain ) ) {
+			return null;
+		}
 
 		return (
 			<EmailProviderCard
@@ -276,8 +274,8 @@ class EmailProvidersComparison extends React.Component {
 				) }
 				detailsExpanded={ this.state.expanded.forwarding }
 				onExpandedChange={ this.onExpandedStateChange }
-				buttonLabel={ buttonLabel }
-				showExpandButton={ showExpandButton }
+				buttonLabel={ translate( 'Add email forwarding' ) }
+				showExpandButton={ this.isDomainEligibleForEmail( domain ) }
 				expandButtonLabel={ translate( 'Add email forwarding' ) }
 				onButtonClick={ this.goToEmailForwarding }
 				features={ getEmailForwardingFeatures() }
@@ -484,10 +482,6 @@ class EmailProvidersComparison extends React.Component {
 				</p>
 			</PromoCard>
 		);
-	}
-
-	doesDomainHaveEmailForwards( domain ) {
-		return domain.emailForwardsCount > 0;
 	}
 
 	isDomainEligibleForEmail( domain ) {
