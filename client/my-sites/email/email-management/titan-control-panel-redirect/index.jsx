@@ -13,10 +13,10 @@ import { Card } from '@automattic/components';
 import EmptyContent from 'calypso/components/empty-content';
 import { errorNotice } from 'calypso/state/notices/actions';
 import { fetchTitanAutoLoginURL } from 'calypso/my-sites/email/email-management/titan-functions';
-import { getTitanMailOrderId, getTitanProductName, hasTitanMailWithUs } from 'calypso/lib/titan';
-import { getSelectedDomain } from 'calypso/lib/domains';
 import { getDomainsBySiteId } from 'calypso/state/sites/domains/selectors';
-import getSiteBySlug from 'calypso/state/sites/selectors/get-site-by-slug';
+import { getSelectedDomain } from 'calypso/lib/domains';
+import { getSelectedSiteId } from 'calypso/state/ui/selectors';
+import { getTitanMailOrderId, getTitanProductName, hasTitanMailWithUs } from 'calypso/lib/titan';
 import QuerySiteDomains from 'calypso/components/data/query-site-domains';
 import QuerySites from 'calypso/components/data/query-sites';
 import Spinner from 'calypso/components/spinner';
@@ -29,16 +29,16 @@ import poweredByTitanLogo from 'calypso/assets/images/email-providers/titan/powe
 
 class TitanControlPanelRedirect extends React.Component {
 	static propTypes = {
-		// Props
+		// Props passed to this component
 		context: PropTypes.string,
 		domainName: PropTypes.string.isRequired,
 		siteSlug: PropTypes.string.isRequired,
 
 		// Connected props derived from the props above
 		domain: PropTypes.object,
-		siteId: PropTypes.number,
+		selectedSiteId: PropTypes.number,
 
-		// Other props added via connect
+		// Other props added via connect()
 		errorNotice: PropTypes.function,
 		translate: PropTypes.function,
 	};
@@ -81,15 +81,18 @@ class TitanControlPanelRedirect extends React.Component {
 	}
 
 	render() {
-		const { siteId, translate } = this.props;
+		const { selectedSiteId, translate } = this.props;
 
 		return (
 			<div className="titan-control-panel-redirect__main">
 				<QuerySites allSites />
-				{ siteId && <QuerySiteDomains siteId={ siteId } /> }
+
+				{ selectedSiteId && <QuerySiteDomains siteId={ selectedSiteId } /> }
+
 				<EmptyContent illustration="" title="">
 					<Card>
 						<Spinner size={ 40 } />
+
 						<h1>
 							{ translate( 'Redirecting you to your %(titanProductName)s Control Panel', {
 								args: {
@@ -99,7 +102,9 @@ class TitanControlPanelRedirect extends React.Component {
 									'%(titanProductName) is the name of the product, which should be "Professional Email" translated',
 							} ) }
 						</h1>
+
 						<hr />
+
 						<img src={ poweredByTitanLogo } alt={ translate( 'Powered by Titan' ) } />
 					</Card>
 				</EmptyContent>
@@ -110,15 +115,14 @@ class TitanControlPanelRedirect extends React.Component {
 
 export default connect(
 	( state, ownProps ) => {
-		const site = getSiteBySlug( state, ownProps.siteSlug );
-		const siteId = site?.ID;
+		const selectedSiteId = getSelectedSiteId( state );
+
 		return {
 			domain: getSelectedDomain( {
-				domains: getDomainsBySiteId( state, siteId ),
+				domains: getDomainsBySiteId( state, selectedSiteId ),
 				selectedDomainName: ownProps.domainName,
-				isSiteRedirect: false,
 			} ),
-			siteId,
+			selectedSiteId,
 		};
 	},
 	{
