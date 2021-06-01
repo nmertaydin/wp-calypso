@@ -4,7 +4,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { isEnabled } from '@automattic/calypso-config';
-import { localize } from 'i18n-calypso';
+import { localize, useTranslate } from 'i18n-calypso';
 import page from 'page';
 import PropTypes from 'prop-types';
 
@@ -19,6 +19,7 @@ import {
 	emailManagementManageTitanAccount,
 	emailManagementManageTitanMailboxes,
 	emailManagementNewTitanAccount,
+	emailManagementPurchaseNewEmailAccount,
 	emailManagementTitanControlPanelRedirect,
 } from 'calypso/my-sites/email/paths';
 import EmailPlanHeader from 'calypso/my-sites/email/email-management/home/email-plan-header';
@@ -37,6 +38,7 @@ import {
 } from 'calypso/lib/gsuite';
 import { getManagePurchaseUrlFor } from 'calypso/my-sites/purchases/paths';
 import { getTitanProductName, getTitanSubscriptionId, hasTitanMailWithUs } from 'calypso/lib/titan';
+import { hasEmailForwards } from 'calypso/lib/domains/email-forwarding';
 import {
 	hasLoadedSitePurchasesFromServer,
 	isFetchingSitePurchases,
@@ -46,6 +48,28 @@ import QuerySitePurchases from 'calypso/components/data/query-site-purchases';
 import { TITAN_CONTROL_PANEL_CONTEXT_CREATE_EMAIL } from 'calypso/lib/titan/constants';
 import VerticalNav from 'calypso/components/vertical-nav';
 import VerticalNavItem from 'calypso/components/vertical-nav/item';
+
+const UpgradeNavItem = ( { currentRoute, domain, selectedSiteSlug } ) => {
+	const translate = useTranslate();
+
+	if ( ! hasEmailForwards( domain ) ) {
+		return null;
+	}
+
+	return (
+		<VerticalNavItem
+			path={ emailManagementPurchaseNewEmailAccount( selectedSiteSlug, domain.name, currentRoute ) }
+		>
+			{ translate( 'Upgrade' ) }
+		</VerticalNavItem>
+	);
+};
+
+UpgradeNavItem.propTypes = {
+	currentRoute: PropTypes.string,
+	domain: PropTypes.object.isRequired,
+	selectedSiteSlug: PropTypes.string.isRequired,
+};
 
 class EmailPlan extends React.Component {
 	static propTypes = {
@@ -256,6 +280,7 @@ class EmailPlan extends React.Component {
 
 	render() {
 		const {
+			currentRoute,
 			domain,
 			selectedSite,
 			hasSubscription,
@@ -296,7 +321,15 @@ class EmailPlan extends React.Component {
 						<VerticalNavItem { ...addMailboxProps }>
 							{ translate( 'Add new mailbox' ) }
 						</VerticalNavItem>
+
+						<UpgradeNavItem
+							currentRoute={ currentRoute }
+							domain={ domain }
+							selectedSiteSlug={ selectedSite.slug }
+						/>
+
 						{ this.renderManageAllNavItem() }
+
 						{ this.renderBillingNavItem() }
 					</VerticalNav>
 				</div>
