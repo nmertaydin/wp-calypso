@@ -18,12 +18,18 @@ import {
 } from 'calypso/lib/titan/new-mailbox';
 import { areAllUsersValid, getItemsForCart, newUsers } from 'calypso/lib/gsuite/new-users';
 import { Button } from '@automattic/components';
-import { canCurrentUserAddEmail, getCurrentUserCannotAddEmailReason } from 'calypso/lib/domains';
+import {
+	canCurrentUserAddEmail,
+	getCurrentUserCannotAddEmailReason,
+	getSelectedDomain,
+} from 'calypso/lib/domains';
+import canUserPurchaseGSuite from 'calypso/state/selectors/can-user-purchase-gsuite';
 import PromoCard from 'calypso/components/promo-section/promo-card';
 import EmailProviderCard from './email-provider-card';
 import { fillInSingleCartItemAttributes } from 'calypso/lib/cart-values';
 import FormFieldset from 'calypso/components/forms/form-fieldset';
 import { getCurrentUserCurrencyCode } from 'calypso/state/current-user/selectors';
+import { getDomainsBySiteId } from 'calypso/state/sites/domains/selectors';
 import {
 	getEmailForwardingFeatures,
 	getGoogleFeatures,
@@ -35,10 +41,15 @@ import {
 	GSUITE_BASIC_SLUG,
 } from 'calypso/lib/gsuite/constants';
 import { TITAN_MAIL_MONTHLY_SLUG } from 'calypso/lib/titan/constants';
-import { getAnnualPrice, getGoogleMailServiceFamily, getMonthlyPrice } from 'calypso/lib/gsuite';
+import {
+	getAnnualPrice,
+	getGoogleMailServiceFamily,
+	getMonthlyPrice,
+	hasGSuiteSupportedDomain,
+} from 'calypso/lib/gsuite';
 import { hasDiscount } from 'calypso/components/gsuite/gsuite-price';
 import getCurrentRoute from 'calypso/state/selectors/get-current-route';
-import { getSelectedSiteSlug } from 'calypso/state/ui/selectors';
+import { getSelectedSiteId, getSelectedSiteSlug } from 'calypso/state/ui/selectors';
 import { getTitanProductName } from 'calypso/lib/titan';
 import GSuiteNewUserList from 'calypso/components/gsuite/gsuite-new-user-list';
 import { emailManagementForwarding } from 'calypso/my-sites/email/paths';
@@ -53,6 +64,7 @@ import poweredByTitanLogo from 'calypso/assets/images/email-providers/titan/powe
 import googleWorkspaceIcon from 'calypso/assets/images/email-providers/google-workspace/icon.svg';
 import gSuiteLogo from 'calypso/assets/images/email-providers/gsuite.svg';
 import forwardingIcon from 'calypso/assets/images/email-providers/forwarding.svg';
+import QuerySiteDomains from 'calypso/components/data/query-site-domains';
 import { titanMailMonthly } from 'calypso/lib/cart-values/cart-items';
 import TitanNewMailboxList from 'calypso/my-sites/email/titan-add-mailboxes/titan-new-mailbox-list';
 import { withShoppingCart } from '@automattic/shopping-cart';
@@ -66,8 +78,19 @@ const identityMap = ( item ) => item;
 
 class EmailProvidersComparison extends React.Component {
 	static propTypes = {
+		// Props passed to this component
+		selectedDomainName: PropTypes.string.isRequired,
+
+		// Props injected via connect()
+		currencyCode: PropTypes.string,
+		currentRoute: PropTypes.string,
 		domain: PropTypes.object.isRequired,
+		gSuiteProduct: PropTypes.object.isRequired,
 		isGSuiteSupported: PropTypes.bool.isRequired,
+		productsList: PropTypes.object.isRequired,
+		selectedSiteId: PropTypes.number,
+		selectedSiteSlug: PropTypes.string,
+		titanMailProduct: PropTypes.object.isRequired,
 	};
 
 	isMounted = false;
@@ -506,15 +529,22 @@ class EmailProvidersComparison extends React.Component {
 	}
 
 	render() {
-		const { isGSuiteSupported } = this.props;
+		const { isGSuiteSupported, selectedSiteId } = this.props;
 
 		return (
 			<>
+				{ selectedSiteId && <QuerySiteDomains siteId={ selectedSiteId } /> }
+
 				{ this.renderHeaderSection() }
+
 				{ this.renderDomainEligibilityNotice() }
+
 				{ this.renderTitanCard() }
+
 				{ this.renderGoogleCard() }
+
 				{ this.renderEmailForwardingCard() }
+
 				<TrackComponentView
 					eventName="calypso_email_providers_comparison_page_view"
 					eventProperties={ {
@@ -528,18 +558,28 @@ class EmailProvidersComparison extends React.Component {
 }
 
 export default connect(
-	( state ) => {
+	( state, ownProps ) => {
 		const productSlug = config.isEnabled( 'google-workspace-migration' )
 			? GOOGLE_WORKSPACE_BUSINESS_STARTER_YEARLY
 			: GSUITE_BASIC_SLUG;
 
+		const selectedSiteId = getSelectedSiteId( state );
+		const domains = getDomainsBySiteId( state, selectedSiteId );
+		const domain = getSelectedDomain( {
+			domains,
+			selectedDomainName: ownProps.selectedDomainName,
+		} );
+
 		return {
 			currencyCode: getCurrentUserCurrencyCode( state ),
-			gSuiteProduct: getProductBySlug( state, productSlug ),
-			titanMailProduct: getProductBySlug( state, TITAN_MAIL_MONTHLY_SLUG ),
 			currentRoute: getCurrentRoute( state ),
+			domain,
+			gSuiteProduct: getProductBySlug( state, productSlug ),
+			isGSuiteSupported: canUserPurchaseGSuite( state ) && hasGSuiteSupportedDomain( [ domain ] ),
 			productsList: getProductsList( state ),
+			selectedSiteId,
 			selectedSiteSlug: getSelectedSiteSlug( state ),
+			titanMailProduct: getProductBySlug( state, TITAN_MAIL_MONTHLY_SLUG ),
 		};
 	},
 	( dispatch ) => {
