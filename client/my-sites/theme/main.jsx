@@ -50,6 +50,7 @@ import {
 	getThemeDetailsUrl,
 	getThemeRequestErrors,
 	getThemeForumUrl,
+	getThemeDemoUrl,
 } from 'calypso/state/themes/selectors';
 import { getBackPath } from 'calypso/state/themes/themes-ui/selectors';
 import PageViewTracker from 'calypso/lib/analytics/page-view-tracker';
@@ -232,8 +233,8 @@ class ThemeSheet extends React.Component {
 	}
 
 	isThemeAvailable() {
-		const { demo_uri, retired } = this.props;
-		return demo_uri && ! retired;
+		const { demoUrl, retired } = this.props;
+		return demoUrl && ! retired;
 	}
 
 	// Render "Open Live Demo" pseudo-button for mobiles.
@@ -252,7 +253,7 @@ class ThemeSheet extends React.Component {
 	}
 
 	renderScreenshot() {
-		const { isWpcomTheme, name: themeName, demo_uri } = this.props;
+		const { isWpcomTheme, name: themeName, demoUrl } = this.props;
 		const screenshotFull = isWpcomTheme ? this.getFullLengthScreenshot() : this.props.screenshot;
 		const width = 735;
 		// Photon may return null, allow fallbacks
@@ -275,8 +276,7 @@ class ThemeSheet extends React.Component {
 			return (
 				<a
 					className="theme__sheet-screenshot is-active"
-					// Hacky replacement of Storefront theme demo URI with something nicer
-					href={ demo_uri }
+					href={ demoUrl }
 					onClick={ this.previewAction }
 					rel="noopener noreferrer"
 				>
@@ -296,7 +296,7 @@ class ThemeSheet extends React.Component {
 			support: i18n.translate( 'Support', { context: 'Filter label for theme content' } ),
 		};
 
-		const { siteSlug, id, demo_uri } = this.props;
+		const { siteSlug, id, demoUrl } = this.props;
 		const sitePart = siteSlug ? `/${ siteSlug }` : '';
 
 		const nav = (
@@ -312,7 +312,7 @@ class ThemeSheet extends React.Component {
 				) ) }
 				{ this.shouldRenderPreviewButton() ? (
 					<NavItem
-						path={ demo_uri }
+						path={ demoUrl }
 						onClick={ this.previewAction }
 						className="theme__sheet-preview-nav-item"
 					>
@@ -772,17 +772,7 @@ class ThemeSheet extends React.Component {
 const ConnectedThemeSheet = connectOptions( ThemeSheet );
 
 const ThemeSheetWithOptions = ( props ) => {
-	const {
-		siteId,
-		isActive,
-		isLoggedIn,
-		isPremium,
-		isPurchased,
-		isJetpack,
-		demo_uri,
-		name: themeName,
-	} = props;
-	const storefrontDemoUri = 'https://themes.woocommerce.com/storefront/';
+	const { siteId, isActive, isLoggedIn, isPremium, isPurchased, isJetpack, demoUrl } = props;
 
 	let defaultOption;
 	let secondaryOption = 'tryandcustomize';
@@ -808,7 +798,7 @@ const ThemeSheetWithOptions = ( props ) => {
 	return (
 		<ConnectedThemeSheet
 			{ ...props }
-			demo_uri={ 'Storefront' === themeName ? storefrontDemoUri : demo_uri }
+			demo_uri={ demoUrl }
 			siteId={ siteId }
 			defaultOption={ defaultOption }
 			secondaryOption={ secondaryOption }
@@ -851,6 +841,7 @@ export default connect(
 			canUserUploadThemes: hasFeature( state, siteId, FEATURE_UPLOAD_THEMES ),
 			// No siteId specified since we want the *canonical* URL :-)
 			canonicalUrl: 'https://wordpress.com' + getThemeDetailsUrl( state, id ),
+			demoUrl: getThemeDemoUrl( state, id ),
 			previousRoute: getPreviousRoute( state ),
 		};
 	},
