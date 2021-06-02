@@ -26,18 +26,25 @@ import getMenusUrl from 'calypso/state/selectors/get-menus-url';
 import { getSiteOption, getSiteSlug } from 'calypso/state/sites/selectors';
 import { requestGuidedTour } from 'calypso/state/guided-tours/actions';
 import { getSelectedSiteId } from 'calypso/state/ui/selectors';
-import { skipCurrentViewHomeLayout } from 'calypso/state/home/actions';
 import NavItem from './nav-item';
 import CurrentTaskItem from './current-task-item';
 import { CHECKLIST_KNOWN_TASKS } from 'calypso/state/data-layer/wpcom/checklist/index.js';
 import { getTask } from './get-task';
+import useSkipCurrentViewMutation from 'calypso/data/home/use-skip-current-view-mutation';
 
 /**
  * Style dependencies
  */
 import './style.scss';
 
-const startTask = ( dispatch, task, siteId, advanceToNextIncompleteTask, isPodcastingSite ) => {
+const startTask = (
+	dispatch,
+	skipCurrentView,
+	task,
+	siteId,
+	advanceToNextIncompleteTask,
+	isPodcastingSite
+) => {
 	dispatch(
 		recordTracksEvent( 'calypso_checklist_task_start', {
 			checklist_name: 'new_blog',
@@ -66,14 +73,22 @@ const startTask = ( dispatch, task, siteId, advanceToNextIncompleteTask, isPodca
 	}
 };
 
-const skipTask = ( dispatch, task, tasks, siteId, setIsLoading, isPodcastingSite ) => {
+const skipTask = (
+	dispatch,
+	skipCurrentView,
+	task,
+	tasks,
+	siteId,
+	setIsLoading,
+	isPodcastingSite
+) => {
 	const isLastTask = tasks.filter( ( t ) => ! t.isCompleted ).length === 1;
 
 	if ( isLastTask ) {
 		// When skipping the last task, we request skipping the current layout view so it's refreshed afterwards.
 		// Task will be dismissed server-side to avoid race conditions.
 		setIsLoading( true );
-		dispatch( skipCurrentViewHomeLayout( siteId ) );
+		skipCurrentView( siteId );
 	} else {
 		// Otherwise we simply skip the given task.
 		dispatch( requestSiteChecklistTaskUpdate( siteId, task.id ) );
@@ -120,6 +135,7 @@ const SiteSetupList = ( {
 	const [ showAccordionSelectedTask, setShowAccordionSelectedTask ] = useState( false );
 	const [ isLoading, setIsLoading ] = useState( false );
 	const dispatch = useDispatch();
+	const { skipCurrentView } = useSkipCurrentViewMutation();
 
 	const isDomainUnverified =
 		tasks.filter(
@@ -225,11 +241,20 @@ const SiteSetupList = ( {
 					currentTask={ currentTask }
 					skipTask={ () => {
 						setTaskIsManuallySelected( false );
-						skipTask( dispatch, currentTask, tasks, siteId, setIsLoading, isPodcastingSite );
+						skipTask(
+							dispatch,
+							skipCurrentView,
+							currentTask,
+							tasks,
+							siteId,
+							setIsLoading,
+							isPodcastingSite
+						);
 					} }
 					startTask={ () =>
 						startTask(
 							dispatch,
+							skipCurrentView,
 							currentTask,
 							siteId,
 							advanceToNextIncompleteTask,
@@ -276,6 +301,7 @@ const SiteSetupList = ( {
 										setTaskIsManuallySelected( false );
 										skipTask(
 											dispatch,
+											skipCurrentView,
 											currentTask,
 											tasks,
 											siteId,
@@ -286,6 +312,7 @@ const SiteSetupList = ( {
 									startTask={ () =>
 										startTask(
 											dispatch,
+											skipCurrentView,
 											currentTask,
 											siteId,
 											advanceToNextIncompleteTask,
