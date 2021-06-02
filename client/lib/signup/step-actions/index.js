@@ -2,18 +2,7 @@
  * External dependencies
  */
 import debugFactory from 'debug';
-import {
-	assign,
-	defer,
-	difference,
-	get,
-	includes,
-	isEmpty,
-	omitBy,
-	pick,
-	startsWith,
-	has,
-} from 'lodash';
+import { defer, difference, get, includes, isEmpty, pick, startsWith } from 'lodash';
 
 /**
  * Internal dependencies
@@ -31,7 +20,7 @@ import {
 	supportsPrivacyProtectionPurchase,
 	planItem as getCartItemForPlan,
 } from 'calypso/lib/cart-values/cart-items';
-import { getUrlParts } from 'calypso/lib/url';
+import { getUrlParts } from '@automattic/calypso-url';
 
 // State actions and selectors
 import { getDesignType } from 'calypso/state/signup/steps/design-type/selectors';
@@ -51,7 +40,7 @@ import {
 	getSelectedImportEngine,
 	getNuxUrlInputValue,
 } from 'calypso/state/importer-nux/temp-selectors';
-import getSiteId from 'calypso/state/selectors/get-site-id';
+import { getSiteId } from 'calypso/state/sites/selectors';
 import { Site } from '@automattic/data-stores';
 const Visibility = Site.Visibility;
 
@@ -64,8 +53,8 @@ import SignupCart from 'calypso/lib/signup/cart';
 // Others
 import flows from 'calypso/signup/config/flows';
 import steps, { isDomainStepSkippable } from 'calypso/signup/config/steps';
-import { isEligibleForPageBuilder, shouldEnterPageBuilder } from 'calypso/lib/signup/page-builder';
 import { fetchSitesAndUser } from 'calypso/lib/signup/step-actions/fetch-sites-and-user';
+import { isBlankCanvasDesign } from '@automattic/design-picker';
 
 /**
  * Constants
@@ -100,9 +89,8 @@ export function createSiteOrDomain( callback, dependencies, data, reduxStore ) {
 
 		SignupCart.createCart(
 			siteId,
-			omitBy(
-				pick( dependencies, 'domainItem', 'privacyItem', 'cartItem' ),
-				( dep ) => dep === null
+			[ dependencies.domainItem, dependencies.privacyItem, dependencies.cartItem ].filter(
+				Boolean
 			),
 			( error ) => {
 				callback( error, providedDependencies );
@@ -156,6 +144,7 @@ function getNewSiteParams( {
 	const siteStyle = getSiteStyle( state ).trim();
 	const siteSegment = getSiteTypePropertyValue( 'slug', siteType, 'id' );
 	const siteTypeTheme = getSiteTypePropertyValue( 'slug', siteType, 'theme' );
+	const selectedDesign = get( signupDependencies, 'selectedDesign', false );
 
 	const shouldSkipDomainStep = ! siteUrl && isDomainStepSkippable( flowToCheck );
 	const shouldHideFreePlan = get( getSignupDependencyStore( state ), 'shouldHideFreePlan', false );
@@ -224,8 +213,17 @@ function getNewSiteParams( {
 		newSiteParams.options.site_segment = 1;
 	}
 
-	if ( isEligibleForPageBuilder( siteSegment, flowToCheck ) && shouldEnterPageBuilder() ) {
-		newSiteParams.options.in_page_builder = true;
+	if ( selectedDesign ) {
+		// If there's a selected design, it means that the current flow contains the "design" step.
+		newSiteParams.options.theme = `pub/${ selectedDesign.theme }`;
+		newSiteParams.options.template = selectedDesign.template;
+		newSiteParams.options.use_patterns = true;
+		newSiteParams.options.is_blank_canvas = isBlankCanvasDesign( selectedDesign );
+
+		if ( selectedDesign.fonts ) {
+			newSiteParams.options.font_base = selectedDesign.fonts.base;
+			newSiteParams.options.font_headings = selectedDesign.fonts.headings;
+		}
 	}
 
 	return newSiteParams;
@@ -377,31 +375,6 @@ export function addDomainToCart(
 	processItemCart( providedDependencies, newCartItems, callback, reduxStore, slug, null, null );
 }
 
-export function addDomainUpsellToCart(
-	callback,
-	dependencies,
-	stepProvidedItems,
-	reduxStore,
-	siteSlug,
-	stepProvidedDependencies
-) {
-	const slug = siteSlug || dependencies.siteSlug;
-	const { selectedDomainUpsellItem } = stepProvidedItems;
-
-	if ( isEmpty( selectedDomainUpsellItem ) ) {
-		defer( callback );
-		return;
-	}
-	processItemCart(
-		stepProvidedDependencies,
-		[ selectedDomainUpsellItem ],
-		callback,
-		reduxStore,
-		slug,
-		null,
-		null
-	);
-}
 function processItemCart(
 	providedDependencies,
 	newCartItems,
@@ -443,7 +416,11 @@ function processItemCart(
 function addPrivacyProtectionIfSupported( item, state ) {
 	const { product_slug: productSlug } = item;
 	const productsList = getProductsList( state );
-	if ( supportsPrivacyProtectionPurchase( productSlug, productsList ) ) {
+	if (
+		productSlug &&
+		productsList &&
+		supportsPrivacyProtectionPurchase( productSlug, productsList )
+	) {
 		return updatePrivacyForDomain( item, true );
 	}
 
@@ -563,13 +540,15 @@ export function createAccount(
 			type: signupType,
 		} );
 
-		const providedDependencies = assign(
-			{ username, marketing_price_group, plans_reorder_abtest_variation },
-			bearerToken
-		);
+		const providedDependencies = {
+			username,
+			marketing_price_group,
+			plans_reorder_abtest_variation,
+			...bearerToken,
+		};
 
 		if ( signupType === SIGNUP_TYPE_DEFAULT && oauth2Signup ) {
-			assign( providedDependencies, {
+			Object.assign( providedDependencies, {
 				oauth2_client_id: queryArgs.oauth2_client_id,
 				oauth2_redirect: get( response, 'oauth2_redirect', '' ).split( '@' )[ 1 ],
 			} );
@@ -592,7 +571,7 @@ export function createAccount(
 		);
 	} else {
 		wpcom.undocumented().usersNew(
-			assign(
+			Object.assign(
 				{},
 				userData,
 				{
@@ -791,27 +770,6 @@ export function isPlanFulfilled( stepName, defaultDependencies, nextProps ) {
 	}
 
 	if ( shouldExcludeStep( stepName, fulfilledDependencies ) ) {
-		flows.excludeStep( stepName );
-	}
-}
-
-export function isFreePlansDomainUpsellFulfilled( stepName, defaultDependencies, nextProps ) {
-	const { submitSignupStep, isPaidPlan } = nextProps;
-	const hasDomain = has( nextProps, 'signupDependencies.domainItem' );
-	const hasPlan = has( nextProps, 'signupDependencies.cartItem' );
-	const domainItem = get( nextProps, 'signupDependencies.domainItem', false );
-	const cartItem = get( nextProps, 'signupDependencies.cartItem', false );
-
-	if ( ! hasDomain || ! hasPlan ) {
-		return;
-	}
-
-	if ( isPaidPlan || domainItem || cartItem ) {
-		const selectedDomainUpsellItem = null;
-		submitSignupStep(
-			{ stepName, selectedDomainUpsellItem, wasSkipped: true },
-			{ selectedDomainUpsellItem }
-		);
 		flows.excludeStep( stepName );
 	}
 }

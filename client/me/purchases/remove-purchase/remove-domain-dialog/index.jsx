@@ -20,8 +20,7 @@ import { MOVE_DOMAIN } from 'calypso/lib/url/support';
 import { getName } from 'calypso/lib/purchases';
 import { getDomainsBySiteId } from 'calypso/state/sites/domains/selectors';
 import { getSelectedDomain } from 'calypso/lib/domains';
-import { getTitanProductName } from 'calypso/lib/titan/get-titan-product-name';
-import { hasTitanMailWithUs } from 'calypso/lib/titan/has-titan-mail-with-us';
+import { getTitanProductName, hasTitanMailWithUs } from 'calypso/lib/titan';
 
 class RemoveDomainDialog extends Component {
 	static propTypes = {
@@ -63,7 +62,7 @@ class RemoveDomainDialog extends Component {
 									productName: getTitanProductName(),
 								},
 								comment:
-									'%(productName) is the name of the product, which is either Email or Titan Mail',
+									'%(productName) is the name of the product, which should be "Professional Email" translated',
 							}
 						) }
 			</p>

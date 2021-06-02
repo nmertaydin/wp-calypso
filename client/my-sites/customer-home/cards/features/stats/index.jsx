@@ -74,7 +74,12 @@ export const StatsV2 = ( {
 	const siteOlderThanAWeek = Date.now() - new Date( siteCreatedAt ).getTime() > WEEK_IN_MS;
 	const statsPlaceholderMessage = siteOlderThanAWeek
 		? translate( "No traffic this week, but don't give up!" )
-		: translate( "No traffic yet, but you'll get there!" );
+		: preventWidows(
+				translate(
+					'No stats to display yet. Publish or share a post to get some traffic to your site.'
+				),
+				4
+		  );
 
 	return (
 		<div className="stats">

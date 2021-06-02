@@ -6,75 +6,12 @@
 
 /**************************************************************************************************/
 /* This library is deprecated! Please consider ExPlat for your next A/B experiment.               */
-/* See /client/components/experiment/readme.md for more info!
+/* See /client/lib/explat/readme.md for more info!
 /**************************************************************************************************/
 
 export default {
-	cartNudgeUpdateToPremium: {
-		datestamp: '20180917',
-		variations: {
-			test: 50,
-			control: 50,
-		},
-		defaultVariation: 'control',
-		allowExistingUsers: true,
-	},
-	pageBuilderMVP: {
-		datestamp: '20190419',
-		variations: {
-			control: 100,
-			test: 0,
-		},
-		defaultVariation: 'control',
-		allowExistingUsers: true,
-	},
-	conciergeUpsellDial: {
-		//this test is used to dial down the upsell offer
-		datestamp: '20200910',
-		variations: {
-			offer: 75,
-			noOffer: 25,
-		},
-		defaultVariation: 'noOffer',
-		allowExistingUsers: true,
-	},
-	userlessCheckout: {
-		datestamp: '20210806',
-		variations: {
-			variantUserless: 50,
-			control: 50,
-		},
-		defaultVariation: 'control',
-		allowExistingUsers: false,
-		countryCodeTargets: [ 'US', 'CA' ],
-	},
-	reskinSignupFlow: {
-		datestamp: '20300928',
-		variations: {
-			reskinned: 50,
-			control: 50,
-		},
-		defaultVariation: 'control',
-		allowExistingUsers: false,
-	},
-	newUsersWithFreePlan: {
-		datestamp: '20210107',
-		variations: {
-			newOnboarding: 50,
-			control: 50,
-		},
-		localeTargets: 'any',
-		localeExceptions: [ 'en', 'es' ],
-		defaultVariation: 'control',
-		allowExistingUsers: false,
-	},
-	jetpackNewPurchaseIntroPricing: {
-		datestamp: '20210217',
-		variations: {
-			withIntroPricing: 50,
-			withoutIntroPricing: 50,
-		},
-		defaultVariation: 'withoutIntroPricing',
-		allowExistingUsers: true,
-	},
+	// ⚠️ The ExPlat team is monitoring additions to this object 😈
+	// Let us know if there is a use-case we have missed adding in ExPlat.
+	// If you are looking for the conciergeUpsellDial experiment it has been replaced with
+	// badNaiveClientSideRollout in `client/my-sites/checkout/composite-checkout/hooks/use-get-thank-you-url/get-thank-you-page-url.ts`
 };

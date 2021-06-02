@@ -8,6 +8,7 @@ import page from 'page';
 import { pick } from 'lodash';
 import { withShoppingCart, createRequestCartProduct } from '@automattic/shopping-cart';
 import { StripeHookProvider } from '@automattic/calypso-stripe';
+import { isURL } from '@wordpress/url';
 
 /**
  * Internal dependencies
@@ -39,13 +40,10 @@ import {
 import { ConciergeQuickstartSession } from './concierge-quickstart-session';
 import { ConciergeSupportSession } from './concierge-support-session';
 import { BusinessPlanUpgradeUpsell } from './business-plan-upgrade-upsell';
-import { PremiumPlanUpgradeUpsell } from './premium-plan-upgrade-upsell';
-import { DifmUpsell } from './difm-upsell';
 import getUpgradePlanSlugFromPath from 'calypso/state/selectors/get-upgrade-plan-slug-from-path';
 import PurchaseModal from './purchase-modal';
 import Gridicon from 'calypso/components/gridicon';
-import { isMonthly } from 'calypso/lib/plans/constants';
-import { getPlanByPathSlug } from 'calypso/lib/plans';
+import { isMonthly, getPlanByPathSlug } from '@automattic/calypso-products';
 import { isFetchingStoredCards, getStoredCards } from 'calypso/state/stored-cards/selectors';
 import getThankYouPageUrl from 'calypso/my-sites/checkout/composite-checkout/hooks/use-get-thank-you-url/get-thank-you-page-url';
 import { extractStoredCardMetaValue } from './purchase-modal/util';
@@ -66,9 +64,7 @@ import './style.scss';
  */
 export const CONCIERGE_QUICKSTART_SESSION = 'concierge-quickstart-session';
 export const CONCIERGE_SUPPORT_SESSION = 'concierge-support-session';
-export const PREMIUM_PLAN_UPGRADE_UPSELL = 'premium-plan-upgrade-upsell';
 export const BUSINESS_PLAN_UPGRADE_UPSELL = 'business-plan-upgrade-upsell';
-export const DIFM_UPSELL = 'difm-upsell';
 
 export class UpsellNudge extends React.Component {
 	static propTypes = {
@@ -101,6 +97,10 @@ export class UpsellNudge extends React.Component {
 	state = {
 		showPurchaseModal: false,
 	};
+
+	componentDidMount() {
+		window.scrollTo( 0, 0 );
+	}
 
 	render() {
 		const { selectedSiteId, isLoading, hasProductsList, hasSitePlans, upsellType } = this.props;
@@ -223,32 +223,6 @@ export class UpsellNudge extends React.Component {
 						hasSevenDayRefundPeriod={ hasSevenDayRefundPeriod }
 					/>
 				);
-
-			case PREMIUM_PLAN_UPGRADE_UPSELL:
-				return (
-					<PremiumPlanUpgradeUpsell
-						currencyCode={ currencyCode }
-						planRawPrice={ planRawPrice }
-						planDiscountedRawPrice={ planDiscountedRawPrice }
-						receiptId={ receiptId }
-						translate={ translate }
-						handleClickAccept={ this.handleClickAccept }
-						handleClickDecline={ this.handleClickDecline }
-					/>
-				);
-
-			case DIFM_UPSELL:
-				return (
-					<DifmUpsell
-						currencyCode={ currencyCode }
-						planRawPrice={ planRawPrice }
-						planDiscountedRawPrice={ planDiscountedRawPrice }
-						receiptId={ receiptId }
-						translate={ translate }
-						handleClickAccept={ this.handleClickAccept }
-						handleClickDecline={ this.handleClickDecline }
-					/>
-				);
 		}
 	}
 
@@ -273,7 +247,13 @@ export class UpsellNudge extends React.Component {
 			clearSignupDestinationCookie();
 		}
 
-		page.redirect( url );
+		// If url starts with http, use browser redirect.
+		// If url is a route, use page router.
+		if ( isURL( url ) ) {
+			window.location.href = url;
+		} else {
+			page.redirect( url );
+		}
 	};
 
 	handleClickAccept = ( buttonAction ) => {
@@ -299,11 +279,6 @@ export class UpsellNudge extends React.Component {
 			return;
 		}
 
-		if ( DIFM_UPSELL === upsellType ) {
-			page( '/me/difm-intake' );
-			return;
-		}
-
 		return siteSlug
 			? page( `/checkout/${ upgradeItem }/${ siteSlug }` )
 			: page( `/checkout/${ upgradeItem }` );
@@ -316,11 +291,7 @@ export class UpsellNudge extends React.Component {
 			return false;
 		}
 
-		const supportedUpsellTypes = [
-			CONCIERGE_QUICKSTART_SESSION,
-			PREMIUM_PLAN_UPGRADE_UPSELL,
-			BUSINESS_PLAN_UPGRADE_UPSELL,
-		];
+		const supportedUpsellTypes = [ CONCIERGE_QUICKSTART_SESSION, BUSINESS_PLAN_UPGRADE_UPSELL ];
 		if ( 'accept' !== buttonAction || ! supportedUpsellTypes.includes( upsellType ) ) {
 			return false;
 		}
@@ -375,7 +346,6 @@ const trackUpsellButtonClick = ( eventName ) => {
 
 const resolveProductSlug = ( upsellType, productAlias ) => {
 	switch ( upsellType ) {
-		case PREMIUM_PLAN_UPGRADE_UPSELL:
 		case BUSINESS_PLAN_UPGRADE_UPSELL:
 			return getPlanByPathSlug( productAlias )?.getStoreSlug();
 		case CONCIERGE_QUICKSTART_SESSION:

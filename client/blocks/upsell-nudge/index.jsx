@@ -16,17 +16,20 @@ import {
 	isPremiumPlan,
 	isBusinessPlan,
 	isEcommercePlan,
-} from 'calypso/lib/plans';
+	GROUP_JETPACK,
+	GROUP_WPCOM,
+	FEATURE_NO_ADS,
+	isFreePlanProduct,
+} from '@automattic/calypso-products';
 import Banner from 'calypso/components/banner';
-import { GROUP_JETPACK, GROUP_WPCOM, FEATURE_NO_ADS } from 'calypso/lib/plans/constants';
 import { addQueryArgs } from 'calypso/lib/url';
 import { hasFeature } from 'calypso/state/sites/plans/selectors';
-import { isFreePlan } from 'calypso/lib/products-values';
 import canCurrentUser from 'calypso/state/selectors/can-current-user';
 import isVipSite from 'calypso/state/selectors/is-vip-site';
 import { getSelectedSiteId, getSelectedSiteSlug } from 'calypso/state/ui/selectors';
 import { getSite, isJetpackSite } from 'calypso/state/sites/selectors';
 import isSiteWPForTeams from 'calypso/state/selectors/is-site-wpforteams';
+import isSiteAutomatedTransfer from 'calypso/state/selectors/is-site-automated-transfer';
 
 /**
  * Style dependencies
@@ -51,6 +54,7 @@ export const UpsellNudge = ( {
 	href,
 	isJetpackDevDocs,
 	jetpack,
+	isAtomic,
 	isVip,
 	siteIsWPForTeams,
 	list,
@@ -79,7 +83,7 @@ export const UpsellNudge = ( {
 		typeof site !== 'object' ||
 		typeof site.jetpack !== 'boolean' ||
 		( feature && planHasFeature ) ||
-		( ! feature && ! isFreePlan( site.plan ) ) ||
+		( ! feature && ! isFreePlanProduct( site.plan ) ) ||
 		( feature === FEATURE_NO_ADS && site.options.wordads ) ||
 		( ! jetpack && site.jetpack ) ||
 		( jetpack && ! site.jetpack );
@@ -126,7 +130,7 @@ export const UpsellNudge = ( {
 			horizontal={ horizontal }
 			href={ href }
 			icon="star"
-			jetpack={ jetpack || isJetpackDevDocs } //Force show Jetpack example in Devdocs
+			jetpack={ ( jetpack && ! isAtomic ) || isJetpackDevDocs } //Force show Jetpack example in Devdocs
 			list={ list }
 			onClick={ onClick }
 			onDismissClick={ onDismissClick }
@@ -158,6 +162,7 @@ export default connect( ( state, ownProps ) => {
 		planHasFeature: hasFeature( state, siteId, ownProps.feature ),
 		canManageSite: canCurrentUser( state, siteId, 'manage_options' ),
 		jetpack: isJetpackSite( state, siteId ),
+		isAtomic: isSiteAutomatedTransfer( state, siteId ),
 		isVip: isVipSite( state, siteId ),
 		siteSlug: ownProps.disableHref ? null : getSelectedSiteSlug( state ),
 		canUserUpgrade: canCurrentUser( state, getSelectedSiteId( state ), 'manage_options' ),

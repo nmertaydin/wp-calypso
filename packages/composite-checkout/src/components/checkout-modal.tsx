@@ -4,7 +4,7 @@
 import React, { useEffect } from 'react';
 import { keyframes } from '@emotion/core';
 import PropTypes from 'prop-types';
-import { useI18n } from '@automattic/react-i18n';
+import { useI18n } from '@wordpress/react-i18n';
 
 /**
  * Internal dependencies
@@ -12,6 +12,8 @@ import { useI18n } from '@automattic/react-i18n';
 import joinClasses from '../lib/join-classes';
 import Button from './button';
 import styled from '../lib/styled';
+
+/* eslint-disable @typescript-eslint/no-use-before-define */
 
 export default function CheckoutModal( {
 	className,
@@ -23,7 +25,7 @@ export default function CheckoutModal( {
 	isVisible,
 	buttonCTA,
 	cancelButtonCTA,
-}: CheckoutModalProps ) {
+}: CheckoutModalProps ): JSX.Element | null {
 	const { __ } = useI18n();
 	useModalScreen( isVisible, closeModal );
 
@@ -31,13 +33,19 @@ export default function CheckoutModal( {
 		return null;
 	}
 
+	const titleId = `${ title.toLowerCase().replace( /[^a-z0-9_-]/g, '-' ) }-modal-title`;
+
 	return (
 		<CheckoutModalWrapper
+			role="dialog"
+			aria-labelledby={ titleId }
 			className={ joinClasses( [ className, 'checkout-modal' ] ) }
 			onClick={ () => handleCancelAction( cancelAction, closeModal ) }
 		>
 			<CheckoutModalContent className="checkout-modal__content" onClick={ preventClose }>
-				<CheckoutModalTitle className="checkout-modal__title">{ title }</CheckoutModalTitle>
+				<CheckoutModalTitle id={ titleId } className="checkout-modal__title">
+					{ title }
+				</CheckoutModalTitle>
 				<CheckoutModalCopy className="checkout-modal__copy">{ copy }</CheckoutModalCopy>
 
 				<CheckoutModalActions>

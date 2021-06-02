@@ -663,6 +663,42 @@ function mapKeysRecursively( object, fn ) {
 	}, {} );
 }
 
+Undocumented.prototype.validateTaxContactInformation = function ( contactInformation ) {
+	return new Promise( ( resolve, reject ) => {
+		let data = {
+			contactInformation,
+		};
+
+		debug( '/me/tax-contact-information/validate query' );
+		data = mapKeysRecursively( data, snakeCase );
+
+		this.wpcom.req.post(
+			{ path: '/me/tax-contact-information/validate' },
+			undefined,
+			data,
+			function ( error, successData ) {
+				if ( error ) {
+					reject( error );
+				}
+
+				// Reshape the error messages to a nested object
+				if ( successData.messages ) {
+					successData.messages = Object.keys( successData.messages ).reduce( ( obj, key ) => {
+						set( obj, key, successData.messages[ key ] );
+						return obj;
+					}, {} );
+				}
+
+				const newData = mapKeysRecursively( successData, function ( key ) {
+					return key === '_headers' ? key : camelCase( key );
+				} );
+
+				resolve( newData );
+			}
+		);
+	} );
+};
+
 /**
  * Validates the specified domain contact information against a list of domain names.
  *
@@ -759,6 +795,18 @@ Undocumented.prototype.validateGoogleAppsContactInformation = function (
 	return result.then?.( camelCaseKeys );
 };
 
+Undocumented.prototype.getEmailAccountsForSiteAndDomain = function ( siteId, domain, fn ) {
+	return this.wpcom.req.get(
+		{
+			path: `/sites/${ encodeURIComponent( siteId ) }/emails/accounts/${ encodeURIComponent(
+				domain
+			) }/mailboxes`,
+			apiNamespace: 'wpcom/v2',
+		},
+		fn
+	);
+};
+
 /**
  * Retrieves the Titan order provisioning URL for a domain.
  *
@@ -789,15 +837,17 @@ Undocumented.prototype.getTitanDetailsForIncomingRedirect = function ( mode, jwt
 /**
  * Retrieves the auto login link to Titan's control panel.
  *
- * @param orderId the Titan order ID
+ * @param emailAccountId The email account ID
+ * @param context Optional context enum to launch into a specific part of the control panel
  * @param fn The callback function
  */
-Undocumented.prototype.getTitanControlPanelAutoLoginURL = function ( orderId, fn ) {
+Undocumented.prototype.getTitanControlPanelAutoLoginURL = function ( emailAccountId, context, fn ) {
 	return this.wpcom.req.get(
 		{
-			path: `/emails/titan/${ encodeURIComponent( orderId ) }/control-panel-auto-login-url`,
+			path: `/emails/titan/${ encodeURIComponent( emailAccountId ) }/control-panel-auto-login-url`,
 			apiNamespace: 'wpcom/v2',
 		},
+		{ context },
 		fn
 	);
 };
@@ -805,30 +855,35 @@ Undocumented.prototype.getTitanControlPanelAutoLoginURL = function ( orderId, fn
 /**
  * Retrieves the URL to embed Titan's control panel in an iframe.
  *
- * @param orderId the Titan order ID
+ * @param emailAccountId The email account ID
+ * @param context Optional context enum to launch into a specific part of the control panel
  * @param fn The callback function
  */
-Undocumented.prototype.getTitanControlPanelIframeURL = function ( orderId, fn ) {
+Undocumented.prototype.getTitanControlPanelIframeURL = function ( emailAccountId, context, fn ) {
 	return this.wpcom.req.get(
 		{
-			path: `/emails/titan/${ encodeURIComponent( orderId ) }/control-panel-iframe-url`,
+			path: `/emails/titan/${ encodeURIComponent( emailAccountId ) }/control-panel-iframe-url`,
 			apiNamespace: 'wpcom/v2',
 		},
+		{ context },
 		fn
 	);
 };
 
 /**
- * Get a list of WordPress.com products
+ * Checks the availability of a mailbox
  *
- * @param {Function} fn The callback function
+ * @param domain The domain name to check the mailbox name against
+ * @param mailbox The mailbox to check for availability
+ * @param fn The callback function
  */
-Undocumented.prototype.getProducts = function ( fn ) {
-	debug( '/products query' );
-	return this._sendRequest(
+Undocumented.prototype.getTitanMailboxAvailability = function ( domain, mailbox, fn ) {
+	return this.wpcom.req.get(
 		{
-			path: '/products',
-			method: 'get',
+			path: `/emails/titan/${ encodeURIComponent(
+				domain
+			) }/check-mailbox-availability/${ encodeURIComponent( mailbox ) }`,
+			apiNamespace: 'wpcom/v2',
 		},
 		fn
 	);
@@ -1846,6 +1901,27 @@ Undocumented.prototype.updateWhois = function ( domainName, whois, transferLock,
 };
 
 /**
+ * Add domain mapping for eligible clients.
+ *
+ * @param {number} siteId The site ID
+ * @param {string} [domainName] Name of the domain mapping
+ * @param {Function} fn The callback function
+ * @returns {Promise} A promise that resolves when the request completes
+ */
+Undocumented.prototype.addDomainMapping = function ( siteId, domainName, fn ) {
+	debug( '/site/:site_id/add-domain-mapping' );
+	return this.wpcom.req.post(
+		{
+			path: `/sites/${ siteId }/add-domain-mapping`,
+			body: {
+				domain: domainName,
+			},
+		},
+		fn
+	);
+};
+
+/**
  * Add domain mapping for VIP clients.
  *
  * @param {number} siteId The site ID
@@ -2623,18 +2699,6 @@ Undocumented.prototype.getAtomicSiteMediaViaProxyRetry = function (
 };
 
 /**
- * Request the Partner Portal partner and it's keys for the current WPCOM user.
- *
- * @returns {Promise} A promise
- */
-Undocumented.prototype.getJetpackPartnerPortalPartner = function () {
-	return this.wpcom.req.get( {
-		apiNamespace: 'wpcom/v2',
-		path: '/jetpack-licensing/partner',
-	} );
-};
-
-/**
  * Look for a site belonging to the currently logged in user that matches the
  * anchor parameters specified.
  *
@@ -2677,16 +2741,20 @@ Undocumented.prototype.getMatchingAnchorSite = function (
 	);
 };
 
-/**
- * Records the interest of the user for the DIFM upsell offer if they click Accept on the offer page. Check pcbrnV-Y3-p2.
- *
- * @returns {Promise} A promise
- */
-Undocumented.prototype.saveDifmInterestForUser = function () {
-	return this.wpcom.req.get( {
-		apiNamespace: 'wpcom/v2',
-		path: '/difm/interested',
-	} );
+Undocumented.prototype.getAtomicSiteLogs = function ( siteIdOrSlug, start, end, scrollId ) {
+	return this.wpcom.req.post(
+		{
+			path: `/sites/${ siteIdOrSlug }/hosting/logs`,
+			apiNamespace: 'wpcom/v2',
+		},
+		{},
+		{
+			start,
+			end,
+			page_size: 10000,
+			scroll_id: scrollId,
+		}
+	);
 };
 
 export default Undocumented;

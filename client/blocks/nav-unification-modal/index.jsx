@@ -13,6 +13,7 @@ import { useTranslate } from 'i18n-calypso';
 import { savePreference } from 'calypso/state/preferences/actions';
 import { getPreference, hasReceivedRemotePreferences } from 'calypso/state/preferences/selectors';
 import { getCurrentUserId } from 'calypso/state/current-user/selectors';
+import isNavUnificationNewUser from 'calypso/state/selectors/is-nav-unification-new-user';
 
 /**
  * Image dependencies
@@ -47,11 +48,17 @@ const Page = ( { heading, content, image } ) => {
 
 const Modal = () => {
 	const dispatch = useDispatch();
+	const isNewUser = useSelector( isNavUnificationNewUser );
 	const userId = useSelector( ( state ) => getCurrentUserId( state ) );
 	const hasPreferences = useSelector( hasReceivedRemotePreferences );
 	const dismissPreference = `nav-unification-modal-${ userId }`;
 	const isDismissed = useSelector( ( state ) => getPreference( state, dismissPreference ) );
 	const translate = useTranslate();
+
+	// Don't show Modal to new users as they have nav-unification enabled by default.
+	if ( isNewUser ) {
+		return null;
+	}
 
 	/**
 	 * Since we don't extract strings from external packages in node_modules,
@@ -80,14 +87,17 @@ const Modal = () => {
 					content: (
 						<Page
 							image={
-								<picture className="nav-unification-modal__picture nav-unification-modal__picture--bottom-right">
+								<picture
+									className="nav-unification-modal__picture nav-unification-modal__picture--bottom-right"
+									key={ desktopOneImg }
+								>
 									<source srcSet={ desktopOneImg } media="(min-width: 600px)" />
-									<img alt={ translate( 'Scrolling sub navigation' ) } src={ mobileOneImg } />
+									<img alt="" src={ mobileOneImg } />
 								</picture>
 							}
-							heading={ translate( 'A new way to navigate' ) }
+							heading={ translate( 'Navigate easier than ever' ) }
 							content={ translate(
-								'Introducing a single site management experience for WordPress.com.'
+								'Managing your entire site is simpler than ever. Do it all right from the sidebar without leaving your dashboard.'
 							) }
 						/>
 					),
@@ -96,14 +106,22 @@ const Modal = () => {
 					content: (
 						<Page
 							image={
-								<picture className="nav-unification-modal__picture nav-unification-modal__picture--no-margin nav-unification-modal__picture--top-right">
+								<picture
+									className="nav-unification-modal__picture nav-unification-modal__picture--center"
+									key={ desktopTwoImg }
+								>
 									<source srcSet={ desktopTwoImg } media="(min-width: 600px)" />
-									<img alt={ translate( 'Scrolling complete navigation' ) } src={ mobileTwoImg } />
+									<img alt="" src={ mobileTwoImg } />
 								</picture>
 							}
-							heading={ translate( 'Everything in one place' ) }
+							heading={ translate( 'Do even more' ) }
 							content={ translate(
-								'Manage your entire site from the sidebar, all without ever leaving your dashboard.'
+								'Advanced admin features have a new home! You can find them in your {{a}}Account Settings{{/a}}.',
+								{
+									components: {
+										a: <a href="/me/account" target="_blank" rel="noopener noreferrer" />,
+									},
+								}
 							) }
 						/>
 					),
@@ -112,14 +130,17 @@ const Modal = () => {
 					content: (
 						<Page
 							image={
-								<picture className="nav-unification-modal__picture nav-unification-modal__picture--center">
+								<picture
+									className="nav-unification-modal__picture nav-unification-modal__picture--bottom-center-small nav-unification-modal__picture--center"
+									key={ desktopThreeImg }
+								>
 									<source srcSet={ desktopThreeImg } media="(min-width: 600px)" />
-									<img alt={ translate( 'Scrolling sub navigation' ) } src={ mobileThreeImg } />
+									<img alt="" src={ mobileThreeImg } />
 								</picture>
 							}
-							heading={ translate( 'Make it your own' ) }
+							heading={ translate( 'Create in color' ) }
 							content={ translate(
-								'Customize the appearance of your navigation from your {{a}}account settings{{/a}}.',
+								'Now you can choose a new color for your dashboard in {{a}}Account Settings{{/a}}.',
 								{
 									components: {
 										a: <a href="/me/account" />,

@@ -30,7 +30,7 @@ import Layout from 'calypso/components/layout';
 import Column from 'calypso/components/layout/column';
 import PaymentMethodSidebar from 'calypso/me/purchases/components/payment-method-sidebar';
 import PaymentMethodSelector from 'calypso/me/purchases/manage-purchase/payment-method-selector';
-import { useCreateCreditCard } from 'calypso/my-sites/checkout/composite-checkout/use-create-payment-methods';
+import { useCreateCreditCard } from 'calypso/my-sites/checkout/composite-checkout/hooks/use-create-payment-methods';
 import PaymentMethodLoader from 'calypso/me/purchases/components/payment-method-loader';
 import doesValueExist from 'calypso/my-sites/checkout/composite-checkout/lib/does-value-exist';
 
@@ -64,7 +64,7 @@ export function PaymentMethods( { siteSlug }: { siteSlug: string } ): JSX.Elemen
 	);
 
 	return (
-		<Main className="purchases is-wide-layout">
+		<Main wideLayout className="purchases">
 			<MySitesSidebarNavigation />
 			<DocumentHead title={ titles.paymentMethods } />
 			<PageViewTracker path="/purchases/payment-methods" title="Payment Methods" />
@@ -118,7 +118,7 @@ function SiteLevelAddNewPaymentMethodForm( { siteSlug }: { siteSlug: string } ):
 	}
 
 	return (
-		<Main className="purchases is-wide-layout">
+		<Main wideLayout className="purchases">
 			<MySitesSidebarNavigation />
 			<PageViewTracker path={ '/purchases/add-payment-method' } title={ titles.addPaymentMethod } />
 			<DocumentHead title={ titles.addPaymentMethod } />

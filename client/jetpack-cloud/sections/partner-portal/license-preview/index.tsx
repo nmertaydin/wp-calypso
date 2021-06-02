@@ -1,15 +1,20 @@
 /**
  * External dependencies
  */
-import React, { useState, useCallback, ReactElement } from 'react';
+import React, { ReactElement, useCallback, useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { getQueryArg, removeQueryArgs } from '@wordpress/url';
 import { useTranslate } from 'i18n-calypso';
-import { getUrlParts } from 'calypso/lib/url';
 import classnames from 'classnames';
+import moment from 'moment';
+import page from 'page';
 
 /**
  * Internal dependencies
  */
-
+import { recordTracksEvent } from 'calypso/state/analytics/actions';
+import { getUrlParts } from '@automattic/calypso-url';
+import { infoNotice } from 'calypso/state/notices/actions';
 import { getLicenseState } from 'calypso/jetpack-cloud/sections/partner-portal/utils';
 import { LicenseState, LicenseFilter } from 'calypso/jetpack-cloud/sections/partner-portal/types';
 import { Button } from '@automattic/components';
@@ -48,15 +53,33 @@ export default function LicensePreview( {
 	filter,
 }: Props ): ReactElement {
 	const translate = useTranslate();
-	const [ isOpen, setOpen ] = useState( false );
+	const dispatch = useDispatch();
+	const isHighlighted = getQueryArg( window.location.href, 'highlight' ) === licenseKey;
+	const [ isOpen, setOpen ] = useState( isHighlighted );
 	const licenseState = getLicenseState( attachedAt, revokedAt );
-	const domain = siteUrl ? getUrlParts( siteUrl ).hostname : '';
+	const domain = siteUrl ? getUrlParts( siteUrl ).hostname || siteUrl : '';
 	const showDomain =
 		domain && [ LicenseState.Attached, LicenseState.Revoked ].indexOf( licenseState ) !== -1;
+	const justIssued =
+		moment.utc( issuedAt, 'YYYY-MM-DD HH:mm:ss' ) > moment.utc().subtract( 1, 'minute' );
 
 	const open = useCallback( () => {
 		setOpen( ! isOpen );
-	}, [ isOpen ] );
+		dispatch( recordTracksEvent( 'calypso_partner_portal_license_list_preview_toggle' ) );
+	}, [ dispatch, isOpen ] );
+
+	const onCopyLicense = useCallback( () => {
+		dispatch( infoNotice( translate( 'License copied!' ), { duration: 2000 } ) );
+		dispatch( recordTracksEvent( 'calypso_partner_portal_license_list_copy_license_click' ) );
+	}, [ dispatch, translate ] );
+
+	useEffect( () => {
+		if ( isHighlighted ) {
+			page.redirect(
+				removeQueryArgs( window.location.pathname + window.location.search, 'highlight' )
+			);
+		}
+	}, [] );
 
 	return (
 		<div
@@ -79,7 +102,7 @@ export default function LicensePreview( {
 						{ licenseState === LicenseState.Detached && (
 							<span className="license-preview__tag license-preview__tag--is-detached">
 								<Gridicon icon="info-outline" size={ 18 } />
-								{ translate( 'Detached' ) }
+								{ translate( 'Unassigned' ) }
 							</span>
 						) }
 
@@ -87,6 +110,13 @@ export default function LicensePreview( {
 							<span className="license-preview__tag license-preview__tag--is-revoked">
 								<Gridicon icon="block" size={ 18 } />
 								{ translate( 'Revoked' ) }
+							</span>
+						) }
+
+						{ justIssued && (
+							<span className="license-preview__tag license-preview__tag--is-just-issued">
+								<Gridicon icon="checkmark-circle" size={ 18 } />
+								{ translate( 'Just issued' ) }
 							</span>
 						) }
 					</h3>
@@ -105,7 +135,7 @@ export default function LicensePreview( {
 
 				{ filter !== LicenseFilter.Revoked ? (
 					<div>
-						<div className="license-preview__label">{ translate( 'Attached on:' ) }</div>
+						<div className="license-preview__label">{ translate( 'Assigned on:' ) }</div>
 
 						{ licenseState === LicenseState.Attached && (
 							<FormattedDate date={ attachedAt } format="YYYY-MM-DD" />
@@ -135,6 +165,7 @@ export default function LicensePreview( {
 							text={ licenseKey }
 							className="license-preview__copy-license-key"
 							compact
+							onCopy={ onCopyLicense }
 						>
 							{ translate( 'Copy License' ) }
 						</ClipboardButton>
@@ -151,11 +182,14 @@ export default function LicensePreview( {
 			{ isOpen && (
 				<LicenseDetails
 					licenseKey={ licenseKey }
+					product={ product }
+					siteUrl={ siteUrl }
 					username={ username }
 					blogId={ blogId }
 					issuedAt={ issuedAt }
 					attachedAt={ attachedAt }
 					revokedAt={ revokedAt }
+					onCopyLicense={ onCopyLicense }
 				/>
 			) }
 		</div>
@@ -181,7 +215,7 @@ export function LicensePreviewPlaceholder(): ReactElement {
 				</div>
 
 				<div>
-					<div className="license-preview__label">{ translate( 'Attached on:' ) }</div>
+					<div className="license-preview__label">{ translate( 'Assigned on:' ) }</div>
 
 					<div />
 				</div>

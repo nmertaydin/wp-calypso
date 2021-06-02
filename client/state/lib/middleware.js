@@ -9,6 +9,7 @@ import page from 'page';
  */
 import config from '@automattic/calypso-config';
 import {
+	INVITE_ACCEPTED,
 	JETPACK_DISCONNECT_RECEIVE,
 	NOTIFICATIONS_PANEL_TOGGLE,
 	ROUTE_SET,
@@ -42,8 +43,6 @@ let globalKeyboardShortcuts;
 if ( globalKeyBoardShortcutsEnabled ) {
 	globalKeyboardShortcuts = getGlobalKeyboardShortcuts();
 }
-
-const desktop = config.isEnabled( 'desktop' ) ? require( 'calypso/lib/desktop' ).default : null;
 
 /**
  * Notifies user about the fact that they were automatically logged in
@@ -113,19 +112,6 @@ const updateNotificationsOpenForKeyboardShortcuts = ( dispatch, action, getState
 	keyboardShortcuts.setNotificationsOpen( toggledState );
 };
 
-/**
- * Sets the selected site for lib/desktop
- *
- * @param {Function} dispatch - redux dispatch function
- * @param {object}   action   - the dispatched action
- * @param {Function} getState - redux getState function
- */
-const updateSelectedSiteForDesktop = ( dispatch, action, getState ) => {
-	const state = getState();
-	const selectedSite = getSelectedSite( state );
-	desktop.setSelectedSite( selectedSite );
-};
-
 const fetchAutomatedTransferStatusForSelectedSite = ( dispatch, getState ) => {
 	const state = getState();
 	const siteId = getSelectedSiteId( state );
@@ -153,12 +139,15 @@ const handler = ( dispatch, action, getState ) => {
 				if ( globalKeyBoardShortcutsEnabled ) {
 					updatedSelectedSiteForKeyboardShortcuts( dispatch, action, getState );
 				}
-				if ( config.isEnabled( 'desktop' ) ) {
-					updateSelectedSiteForDesktop( dispatch, action, getState );
-				}
 
 				fetchAutomatedTransferStatusForSelectedSite( dispatch, getState );
 			}, 0 );
+			return;
+
+		case INVITE_ACCEPTED:
+			if ( ! [ 'follower', 'viewer' ].includes( action.invite.role ) ) {
+				user().incrementSiteCount();
+			}
 			return;
 
 		case SITE_DELETE_RECEIVE:

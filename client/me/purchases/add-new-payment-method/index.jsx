@@ -11,7 +11,6 @@ import { useTranslate } from 'i18n-calypso';
  * Internal dependencies
  */
 import { errorNotice } from 'calypso/state/notices/actions';
-import { concatTitle } from 'calypso/lib/react-helpers';
 import { getStripeConfiguration } from 'calypso/lib/store-transactions';
 import DocumentHead from 'calypso/components/data/document-head';
 import FormattedHeader from 'calypso/components/formatted-header';
@@ -24,16 +23,13 @@ import { getCurrentUserLocale } from 'calypso/state/current-user/selectors';
 import Layout from 'calypso/components/layout';
 import Column from 'calypso/components/layout/column';
 import PaymentMethodSidebar from 'calypso/me/purchases/components/payment-method-sidebar';
-import { isEnabled } from '@automattic/calypso-config';
 import PaymentMethodSelector from 'calypso/me/purchases/manage-purchase/payment-method-selector';
-import { useCreateCreditCard } from 'calypso/my-sites/checkout/composite-checkout/use-create-payment-methods';
+import { useCreateCreditCard } from 'calypso/my-sites/checkout/composite-checkout/hooks/use-create-payment-methods';
 import PaymentMethodLoader from 'calypso/me/purchases/components/payment-method-loader';
 
 function AddNewPaymentMethod() {
 	const goToPaymentMethods = () => page( paymentMethods );
-	const addPaymentMethodTitle = isEnabled( 'purchases/new-payment-methods' )
-		? titles.addPaymentMethod
-		: titles.addCreditCard;
+	const addPaymentMethodTitle = titles.addPaymentMethod;
 
 	const translate = useTranslate();
 	const { isStripeLoading, stripeLoadingError, stripeConfiguration, stripe } = useStripe();
@@ -58,17 +54,12 @@ function AddNewPaymentMethod() {
 		return <PaymentMethodLoader title={ addPaymentMethodTitle } />;
 	}
 
+	const title = `${ titles.activeUpgrades } › ${ addPaymentMethodTitle }`;
+
 	return (
-		<Main className="add-new-payment-method is-wide-layout">
-			<PageViewTracker
-				path={
-					isEnabled( 'purchases/new-payment-methods' )
-						? '/me/purchases/add-payment-method'
-						: '/me/purchases/add-credit-card'
-				}
-				title={ concatTitle( titles.activeUpgrades, addPaymentMethodTitle ) }
-			/>
-			<DocumentHead title={ concatTitle( titles.activeUpgrades, addPaymentMethodTitle ) } />
+		<Main wideLayout className="add-new-payment-method">
+			<PageViewTracker path="/me/purchases/add-payment-method" title={ title } />
+			<DocumentHead title={ title } />
 
 			<FormattedHeader brandFont headerText={ titles.sectionTitle } align="left" />
 			<HeaderCake onClick={ goToPaymentMethods }>{ addPaymentMethodTitle }</HeaderCake>

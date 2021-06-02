@@ -124,11 +124,6 @@
 	float: right;
 }
 
-.button.activity-card__see-content-link {
-	margin-left: 0;
-	color: var( --studio-jetpack-green-40 );
-}
-
 .button.is-borderless.is-primary:focus {
 	box-shadow: none;
 }
@@ -136,6 +131,16 @@
 .activity-card__restore-button {
 	margin: 0.8rem;
 	margin-bottom: 0;
+}
+
+.activity-card__download-button-multisite {
+	margin: 0.8rem;
+	margin-right: 0;
+	margin-bottom: 0.5rem;
+	padding-top: 0.8rem;
+	display: flex;
+	justify-content: left;
+	font-size: 0.9rem;
 }
 
 .activity-card__download-button.is-borderless {

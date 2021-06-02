@@ -38,21 +38,25 @@ export interface ShoppingCartManager {
 export type ReplaceProductInCart = (
 	uuidToReplace: string,
 	productPropertiesToChange: Partial< RequestCartProduct >
-) => Promise< void >;
+) => Promise< ResponseCart >;
 
-export type ReloadCartFromServer = () => Promise< void >;
+export type ReloadCartFromServer = () => Promise< ResponseCart >;
 
-export type ReplaceProductsInCart = ( products: MinimalRequestCartProduct[] ) => Promise< void >;
+export type ReplaceProductsInCart = (
+	products: MinimalRequestCartProduct[]
+) => Promise< ResponseCart >;
 
-export type AddProductsToCart = ( products: MinimalRequestCartProduct[] ) => Promise< void >;
+export type AddProductsToCart = (
+	products: MinimalRequestCartProduct[]
+) => Promise< ResponseCart >;
 
-export type RemoveCouponFromCart = () => Promise< void >;
+export type RemoveCouponFromCart = () => Promise< ResponseCart >;
 
-export type ApplyCouponToCart = ( couponId: string ) => Promise< void >;
+export type ApplyCouponToCart = ( couponId: string ) => Promise< ResponseCart >;
 
-export type RemoveProductFromCart = ( uuidToRemove: string ) => Promise< void >;
+export type RemoveProductFromCart = ( uuidToRemove: string ) => Promise< ResponseCart >;
 
-export type UpdateTaxLocationInCart = ( location: CartLocation ) => Promise< void >;
+export type UpdateTaxLocationInCart = ( location: CartLocation ) => Promise< ResponseCart >;
 
 /**
  * The custom hook keeps a cached version of the server cart, as well as a
@@ -73,10 +77,9 @@ export type CacheStatus = 'fresh' | 'fresh-pending' | 'valid' | 'invalid' | 'pen
  *   - 'fresh': User has not (yet) attempted to apply a coupon.
  *   - 'pending': Coupon request has been sent, awaiting response.
  *   - 'applied': Coupon has been applied to the cart.
- *   - 'invalid': Coupon code is not recognized.
- *   - 'rejected': Valid code, but does not apply to the cart items.
+ *   - 'rejected': Coupon code did not apply. The reason should be in the cart errors.
  */
-export type CouponStatus = 'fresh' | 'pending' | 'applied' | 'invalid' | 'rejected' | 'error';
+export type CouponStatus = 'fresh' | 'pending' | 'applied' | 'rejected';
 
 export type ShoppingCartAction =
 	| { type: 'CLEAR_QUEUED_ACTIONS' }
@@ -109,4 +112,4 @@ export type ShoppingCartState = {
 	queuedActions: ShoppingCartAction[];
 };
 
-export type CartValidCallback = () => void;
+export type CartValidCallback = ( cart: ResponseCart ) => void;

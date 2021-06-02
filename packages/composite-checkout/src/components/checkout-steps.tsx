@@ -11,7 +11,7 @@ import React, {
 } from 'react';
 import debugFactory from 'debug';
 import PropTypes from 'prop-types';
-import { useI18n } from '@automattic/react-i18n';
+import { useI18n } from '@wordpress/react-i18n';
 
 /**
  * Internal dependencies
@@ -210,7 +210,7 @@ export function Checkout( {
 	children,
 	className,
 }: {
-	children: React.ReactChildren;
+	children: React.ReactNode;
 	className?: string;
 } ): JSX.Element {
 	const { isRTL } = useI18n();
@@ -580,6 +580,14 @@ export function CheckoutStepBody( {
 	onError,
 }: CheckoutStepBodyProps ): JSX.Element {
 	const { __ } = useI18n();
+
+	// Since both the active and inactive step content can be mounted at the same
+	// time (by design so that both may hold state in form elements), these
+	// test-ids can be used for tests to differentiate which version of a step is
+	// currently visible.
+	const activeStepTestId = isStepActive ? `${ stepId }--visible` : `${ stepId }--invisible`;
+	const completeStepTestId = isStepActive ? `${ stepId }--invisible` : `${ stepId }--visible`;
+
 	return (
 		<CheckoutErrorBoundary
 			errorMessage={ errorMessage || __( 'There was an error with this step.' ) }
@@ -600,7 +608,11 @@ export function CheckoutStepBody( {
 					editButtonText={ editButtonText || __( 'Edit' ) }
 					editButtonAriaLabel={ editButtonAriaLabel || __( 'Edit this step' ) }
 				/>
-				<StepContentWrapper isVisible={ isStepActive } className="checkout-steps__step-content">
+				<StepContentWrapper
+					data-testid={ activeStepTestId }
+					isVisible={ isStepActive }
+					className="checkout-steps__step-content"
+				>
 					{ activeStepContent }
 					{ goToNextStep && isStepActive && (
 						<CheckoutNextStepButton
@@ -623,6 +635,7 @@ export function CheckoutStepBody( {
 				</StepContentWrapper>
 				{ isStepComplete && completeStepContent ? (
 					<StepSummaryWrapper
+						data-testid={ completeStepTestId }
 						isVisible={ ! isStepActive }
 						className="checkout-steps__step-complete-content"
 					>

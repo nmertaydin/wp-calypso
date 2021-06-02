@@ -51,15 +51,9 @@ import {
 	createGiropayMethod,
 } from './lib/payment-methods/giropay';
 import {
-	createBancontactPaymentMethodStore,
-	createBancontactMethod,
-} from './lib/payment-methods/bancontact';
-import {
 	createStripeMethod,
 	createStripePaymentMethodStore,
 } from './lib/payment-methods/stripe-credit-card-fields';
-import { createApplePayMethod } from './lib/payment-methods/apple-pay';
-import { createPayPalMethod } from './lib/payment-methods/paypal';
 import { createExistingCardMethod } from './lib/payment-methods/existing-credit-card';
 import CheckoutOrderSummaryStep, {
 	CheckoutOrderSummary,
@@ -80,6 +74,7 @@ import {
 	makeManualResponse,
 	makeSuccessResponse,
 	makeRedirectResponse,
+	makeErrorResponse,
 } from './lib/payment-processors';
 import useProcessPayment from './components/use-process-payment';
 import RadioButton from './components/radio-button';
@@ -120,9 +115,6 @@ export {
 	checkoutTheme,
 	createAlipayMethod,
 	createAlipayPaymentMethodStore,
-	createApplePayMethod,
-	createBancontactMethod,
-	createBancontactPaymentMethodStore,
 	createEpsMethod,
 	createEpsPaymentMethodStore,
 	createExistingCardMethod,
@@ -132,7 +124,6 @@ export {
 	createIdealPaymentMethodStore,
 	createP24Method,
 	createP24PaymentMethodStore,
-	createPayPalMethod,
 	createRegistry,
 	createSofortMethod,
 	createSofortPaymentMethodStore,
@@ -143,6 +134,7 @@ export {
 	getDefaultOrderSummary,
 	getDefaultOrderSummaryStep,
 	getDefaultPaymentMethodStep,
+	makeErrorResponse,
 	makeManualResponse,
 	makeRedirectResponse,
 	makeSuccessResponse,

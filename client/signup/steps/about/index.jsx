@@ -4,7 +4,7 @@
 import React, { Component } from 'react';
 import { localize } from 'i18n-calypso';
 import { connect } from 'react-redux';
-import { noop, includes } from 'lodash';
+import { includes } from 'lodash';
 
 /**
  * Internal dependencies
@@ -50,6 +50,8 @@ import SiteVerticalsSuggestionSearch from 'calypso/components/site-verticals-sug
  * Style dependencies
  */
 import './style.scss';
+
+const noop = () => {};
 
 class AboutStep extends Component {
 	constructor( props ) {
@@ -159,11 +161,11 @@ class AboutStep extends Component {
 	}
 
 	handleSegmentClick( value ) {
-		return function () {
+		return () => {
 			this.setState( {
 				userExperience: value,
 			} );
-		}.bind( this );
+		};
 	}
 
 	handleSubmit = ( event ) => {

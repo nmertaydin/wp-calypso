@@ -3,12 +3,13 @@
  */
 import { expect } from 'chai';
 import { spy } from 'sinon';
-import { noop } from 'lodash';
 
 /**
  * Internal dependencies
  */
 import { recordTrack } from '../tracks-utils';
+
+const noop = () => {};
 
 describe( 'recordTrack', () => {
 	it( 'should be a function', () => {
@@ -34,17 +35,7 @@ describe( 'recordTrack', () => {
 			c: '3',
 		};
 
-		const tracksStore = {
-			isTestSite: function () {
-				return false;
-			},
-		};
-
-		recordTrack(
-			tracksSpy,
-			noop,
-			tracksStore
-		)( 'calypso_woocommerce_tracks_utils_test', eventProps );
+		recordTrack( tracksSpy, noop )( 'calypso_woocommerce_tracks_utils_test', eventProps );
 
 		expect( tracksSpy.recordTracksEvent ).to.have.been.calledWith(
 			'calypso_woocommerce_tracks_utils_test',
@@ -57,17 +48,10 @@ describe( 'recordTrack', () => {
 
 		const eventProps = { a: 1 };
 
-		const tracksStore = {
-			isTestSite: function () {
-				return false;
-			},
-		};
-
-		recordTrack(
-			{ recordTracksEvent: noop },
-			debugSpy,
-			tracksStore
-		)( 'calypso_woocommerce_tracks_utils_test', eventProps );
+		recordTrack( { recordTracksEvent: noop }, debugSpy )(
+			'calypso_woocommerce_tracks_utils_test',
+			eventProps
+		);
 
 		expect( debugSpy ).to.have.been.calledWith(
 			"track 'calypso_woocommerce_tracks_utils_test': ",
@@ -86,32 +70,6 @@ describe( 'recordTrack', () => {
 		expect( tracksSpy.recordTracksEvent ).to.not.have.been.called;
 		expect( debugSpy ).to.have.been.calledWith(
 			"invalid store track name: 'calypso_somethingelse_invalid_name', must start with 'calypso_woocommerce_'"
-		);
-	} );
-
-	it( 'should ignore and debug log tracks for test sites', () => {
-		const tracksSpy = {
-			recordTracksEvent: spy(),
-		};
-		const debugSpy = spy();
-
-		const tracksStore = {
-			isTestSite: function () {
-				return true;
-			},
-		};
-
-		recordTrack(
-			tracksSpy,
-			debugSpy,
-			tracksStore
-		)( 'calypso_woocommerce_tracks_utils_test', {
-			a: 1,
-		} );
-
-		expect( tracksSpy.recordTracksEvent ).to.not.have.been.called;
-		expect( debugSpy ).to.have.been.calledWith(
-			'track request discarded. this site is flagged with `dotcom-store-test-site`'
 		);
 	} );
 } );

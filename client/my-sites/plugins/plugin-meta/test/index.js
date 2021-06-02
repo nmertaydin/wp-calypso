@@ -24,11 +24,7 @@ import {
 	PLAN_PERSONAL_2_YEARS,
 	PLAN_BLOGGER,
 	PLAN_BLOGGER_2_YEARS,
-} from 'calypso/lib/plans/constants';
-
-jest.mock( 'calypso/lib/abtest', () => ( {
-	abtest: () => '',
-} ) );
+} from '@automattic/calypso-products';
 
 jest.mock( 'calypso/lib/analytics/tracks', () => ( {} ) );
 jest.mock( 'calypso/lib/analytics/page-view', () => ( {} ) );

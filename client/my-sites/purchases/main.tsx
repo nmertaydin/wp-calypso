@@ -61,13 +61,16 @@ export function Purchases(): JSX.Element {
 	const logPurchasesError = useLogPurchasesError( 'site level purchases load error' );
 
 	return (
-		<Main className="purchases is-wide-layout">
+		<Main wideLayout className="purchases">
 			<MySitesSidebarNavigation />
 			<DocumentHead title={ titles.sectionTitle } />
 			<FormattedHeader
 				brandFont
 				className="purchases__page-heading"
 				headerText={ titles.sectionTitle }
+				subHeaderText={ translate(
+					'View, manage, or cancel your WordPress.com plan and other purchases.'
+				) }
 				align="left"
 			/>
 			<PurchasesNavigation sectionTitle={ 'Active Upgrades' } siteSlug={ siteSlug } />
@@ -93,7 +96,7 @@ export function PurchaseDetails( {
 	const logPurchasesError = useLogPurchasesError( 'site level purchase details load error' );
 
 	return (
-		<Main className="purchases is-wide-layout">
+		<Main wideLayout className="purchases">
 			<DocumentHead title={ titles.managePurchase } />
 			<FormattedHeader
 				brandFont
@@ -138,7 +141,7 @@ export function PurchaseCancel( {
 	const logPurchasesError = useLogPurchasesError( 'site level purchase cancel load error' );
 
 	return (
-		<Main className="purchases is-wide-layout">
+		<Main wideLayout className="purchases">
 			<DocumentHead title={ titles.cancelPurchase } />
 			<FormattedHeader
 				brandFont
@@ -178,8 +181,8 @@ export function PurchaseChangePaymentMethod( {
 	);
 
 	return (
-		<Main className="purchases is-wide-layout">
-			<DocumentHead title={ titles.editCardDetails } />
+		<Main wideLayout className="purchases">
+			<DocumentHead title={ titles.changePaymentMethod } />
 			<FormattedHeader
 				brandFont
 				className="purchases__page-heading"
@@ -215,7 +218,7 @@ export function PurchaseCancelDomain( {
 	const logPurchasesError = useLogPurchasesError( 'site level purchase cancel domain load error' );
 
 	return (
-		<Main className="purchases is-wide-layout">
+		<Main wideLayout className="purchases">
 			<DocumentHead title={ titles.confirmCancelDomain } />
 			<FormattedHeader
 				brandFont

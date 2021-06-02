@@ -2,7 +2,7 @@
  * External dependencies
  */
 
-import { By, until } from 'selenium-webdriver';
+import { By } from 'selenium-webdriver';
 
 /**
  * Internal dependencies
@@ -15,8 +15,8 @@ export default class SiteEditorComponent extends AsyncBaseContainer {
 		super( driver, By.css( '.edit-site-header' ), url );
 		this.editorType = editorType;
 
-		this.editoriFrameSelector = By.css( '.calypsoify.is-iframe iframe' );
-		this.editorCanvasiFrameSelector = By.css( 'iframe[name="editor-canvas"]' );
+		this.editoriFrameLocator = By.css( '.calypsoify.is-iframe iframe' );
+		this.editorCanvasiFrameLocator = By.css( 'iframe[name="editor-canvas"]' );
 	}
 
 	static async Expect( driver, editorType ) {
@@ -30,11 +30,7 @@ export default class SiteEditorComponent extends AsyncBaseContainer {
 			return;
 		}
 		await this.driver.switchTo().defaultContent();
-		await this.driver.wait(
-			until.ableToSwitchToFrame( this.editoriFrameSelector ),
-			this.explicitWaitMS,
-			'Could not locate the editor iFrame.'
-		);
+		await driverHelper.waitUntilAbleToSwitchToFrame( this.driver, this.editoriFrameLocator );
 		await this.driver.sleep( 2000 );
 	}
 
@@ -43,36 +39,26 @@ export default class SiteEditorComponent extends AsyncBaseContainer {
 	}
 
 	async runInCanvas( fn ) {
-		await this.driver.wait(
-			until.ableToSwitchToFrame( this.editorCanvasiFrameSelector ),
-			this.explicitWaitMS,
-			'Could not locate the editor canvas iFrame.'
-		);
+		await driverHelper.waitUntilAbleToSwitchToFrame( this.driver, this.editorCanvasiFrameLocator );
 		await fn();
 		await this.driver.switchTo().parentFrame();
 	}
 
 	async waitForTemplatePartsToLoad() {
 		await this.runInCanvas( async () => {
-			await driverHelper.waitTillNotPresent(
+			await driverHelper.waitUntilElementNotLocated(
 				this.driver,
 				By.css( '.wp-block-template-part .components-spinner' )
 			);
 		} );
 	}
 
-	async waitForTemplateToLoad( templateName = 'Front Page' ) {
-		await driverHelper.getElementByText(
-			this.driver,
-			By.css( '.edit-site-document-actions__title' ),
-			templateName
-		);
-
-		await this.runInCanvas( async () => {
-			await driverHelper.waitTillPresentAndDisplayed(
+	async waitForTemplateToLoad() {
+		await this.runInCanvas( () =>
+			driverHelper.waitUntilElementLocatedAndVisible(
 				this.driver,
 				By.css( '.edit-site-block-editor__block-list' )
-			);
-		} );
+			)
+		);
 	}
 }

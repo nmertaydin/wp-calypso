@@ -13,18 +13,9 @@ import { shallow } from 'enzyme';
  */
 import { MySitesSidebar } from '..';
 import config from '@automattic/calypso-config';
-import { abtest } from 'calypso/lib/abtest';
 
-jest.mock( 'calypso/lib/user', () => () => null );
-jest.mock( 'calypso/lib/user/index', () => () => {} );
 jest.mock( 'calypso/lib/analytics/tracks', () => ( {} ) );
 jest.mock( 'calypso/lib/analytics/page-view', () => ( {} ) );
-jest.mock( 'calypso/lib/abtest', () => ( {
-	abtest: jest.fn( () => {
-		return 'sidebarUpsells';
-	} ),
-} ) );
-jest.mock( 'calypso/lib/cart/store/index', () => null );
 jest.mock( 'calypso/lib/analytics/track-component-view', () => 'TrackComponentView' );
 jest.mock( 'calypso/my-sites/sidebar/utils', () => ( {
 	itemLinkMatches: jest.fn( () => true ),
@@ -46,7 +37,6 @@ describe( 'MySitesSidebar', () => {
 
 		beforeEach( () => {
 			config.isEnabled.mockImplementation( () => true );
-			abtest.mockImplementation( () => 'sidebarUpsells' );
 		} );
 
 		test( 'Should return null item if woocommerce/extension-dashboard is disabled', () => {
@@ -69,24 +59,7 @@ describe( 'MySitesSidebar', () => {
 			expect( wrapper.html() ).toEqual( null );
 		} );
 
-		test( 'Should return store menu item if user can use store on this site', () => {
-			const Sidebar = new MySitesSidebar( {
-				canUserUseCalypsoStore: true,
-				isSiteWpcomStore: true,
-				...defaultProps,
-				site: {
-					plan: {
-						product_slug: 'business-bundle',
-					},
-				},
-			} );
-			const Store = () => Sidebar.store();
-
-			const wrapper = shallow( <Store /> );
-			expect( wrapper.props().link ).toEqual( '/store/mysite.com' );
-		} );
-
-		test( 'Should return Calypsoified store menu item if user can use store on this site and the site is an ecommerce plan', () => {
+		test( 'Should return wp-admin menu item if user can use store on this site and the site is an ecommerce plan', () => {
 			const Sidebar = new MySitesSidebar( {
 				canUserUseCalypsoStore: true,
 				canUserUseWooCommerceCoreStore: true,
@@ -128,8 +101,7 @@ describe( 'MySitesSidebar', () => {
 			expect( wrapper ).toEqual( {} );
 		} );
 
-		test( 'Should return null item if user who can upgrade can not use store on this site (control a/b group)', () => {
-			abtest.mockImplementation( () => 'control' );
+		test( 'Should return null item if user who can upgrade can not use store on this site', () => {
 			const Sidebar = new MySitesSidebar( {
 				canUserUseCalypsoStore: false,
 				canUserUpgradeSite: true,
@@ -146,11 +118,10 @@ describe( 'MySitesSidebar', () => {
 			expect( wrapper.html() ).toEqual( null );
 		} );
 
-		test( "Should return null if user who can't upgrade user can not use store on this site (control a/b group)", () => {
-			abtest.mockImplementation( () => 'control' );
+		test( "Should return null if user who can't upgrade user can not use store on this site", () => {
 			const Sidebar = new MySitesSidebar( {
 				canUserUseCalypsoStore: false,
-				canUserUpgradeSite: true,
+				canUserUpgradeSite: false,
 				...defaultProps,
 				site: {
 					plan: {
@@ -248,7 +219,7 @@ describe( 'MySitesSidebar', () => {
 			);
 		} );
 
-		test( 'Should return WooCommerce menu item linking to Store UI dashboard if site has Business plan, WooCommerce plugin not installed yet, and user can use store', () => {
+		test( 'Should return WooCommerce menu item linking to installation page if site has Business plan, WooCommerce plugin not installed yet, and user can use store', () => {
 			const Sidebar = new MySitesSidebar( {
 				canUserUseWooCommerceCoreStore: true,
 				...defaultProps,
@@ -266,7 +237,7 @@ describe( 'MySitesSidebar', () => {
 
 			const wrapper = shallow( <WooCommerce /> );
 			expect( wrapper.html() ).not.toEqual( null );
-			expect( wrapper.props().link ).toEqual( '/store/mysite.com?redirect_after_install' );
+			expect( wrapper.props().link ).toEqual( '/woocommerce-installation/mysite.com' );
 		} );
 	} );
 

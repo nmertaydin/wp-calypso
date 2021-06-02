@@ -9,53 +9,64 @@ import { Guide, GuidePage } from '@wordpress/components';
 import { registerPlugin } from '@wordpress/plugins';
 import { useDispatch, useSelect } from '@wordpress/data';
 import { useEffect } from '@wordpress/element';
-import apiFetch from '@wordpress/api-fetch';
+import { LocaleProvider, i18nDefaultLocaleSlug } from '@automattic/i18n-utils';
 
 /**
  * Internal dependencies
  */
-import WpcomNux from './welcome-modal/wpcom-nux';
 import LaunchWpcomWelcomeTour from './welcome-tour/tour-launch';
+import WpcomNux from './welcome-modal/wpcom-nux';
+import { DEFAULT_VARIANT, BLANK_CANVAS_VARIANT } from './store';
 
 registerPlugin( 'wpcom-block-editor-nux', {
 	render: function WpcomBlockEditorNux() {
-		const { site, isWpcomNuxEnabled, showWpcomNuxVariant, isSPTOpen } = useSelect( ( select ) => ( {
-			site: select( 'automattic/site' ).getSite( window._currentSiteId ),
-			isWpcomNuxEnabled: select( 'automattic/nux' ).isWpcomNuxEnabled(),
-			showWpcomNuxVariant: select( 'automattic/nux' ).shouldShowWpcomNuxVariant(),
-			isSPTOpen:
-				select( 'automattic/starter-page-layouts' ) && // Handle the case where SPT is not initalized.
-				select( 'automattic/starter-page-layouts' ).isOpen(),
-		} ) );
+		const { show, isLoaded, variant, isManuallyOpened, isNewPageLayoutModalOpen } = useSelect(
+			( select ) => {
+				const welcomeGuideStoreSelect = select( 'automattic/wpcom-welcome-guide' );
+				const starterPageLayoutsStoreSelect = select( 'automattic/starter-page-layouts' );
+				return {
+					show: welcomeGuideStoreSelect.isWelcomeGuideShown(),
+					isLoaded: welcomeGuideStoreSelect.isWelcomeGuideStatusLoaded(),
+					variant: welcomeGuideStoreSelect.getWelcomeGuideVariant(),
+					isManuallyOpened: welcomeGuideStoreSelect.isWelcomeGuideManuallyOpened(),
+					isNewPageLayoutModalOpen: starterPageLayoutsStoreSelect?.isOpen(), // Handle the case where SPT is not initalized.
+				};
+			},
+			[]
+		);
 
-		const { setWpcomNuxStatus, setShowWpcomNuxVariant } = useDispatch( 'automattic/nux' );
+		const setOpenState = useDispatch( 'automattic/starter-page-layouts' )?.setOpenState;
 
-		// On mount check if the WPCOM NUX status exists in state, otherwise fetch it from the API.
+		const { fetchWelcomeGuideStatus } = useDispatch( 'automattic/wpcom-welcome-guide' );
+
+		// On mount check if the WPCOM welcome guide status exists in state (from local storage), otherwise fetch it from the API.
 		useEffect( () => {
-			if ( typeof isWpcomNuxEnabled !== 'undefined' ) {
-				return;
+			if ( ! isLoaded ) {
+				fetchWelcomeGuideStatus();
 			}
+		}, [ fetchWelcomeGuideStatus, isLoaded ] );
 
-			const fetchWpcomNuxStatus = async () => {
-				const response = await apiFetch( { path: '/wpcom/v2/block-editor/nux' } );
-				setWpcomNuxStatus( { isNuxEnabled: response.is_nux_enabled, bypassApi: true } );
-				setShowWpcomNuxVariant( { showVariant: response.welcome_tour_show_variant } );
-			};
-
-			fetchWpcomNuxStatus();
-		}, [ isWpcomNuxEnabled, setWpcomNuxStatus, setShowWpcomNuxVariant ] );
-
-		if ( ! isWpcomNuxEnabled || isSPTOpen ) {
+		if ( ! show || isNewPageLayoutModalOpen ) {
 			return null;
 		}
 
-		const isPodcastingSite = !! site?.options?.anchor_podcast;
-
-		if ( showWpcomNuxVariant && ! isPodcastingSite ) {
-			return <LaunchWpcomWelcomeTour />;
+		// Open patterns panel before Welcome Tour if necessary (e.g. when using Blank Canvas theme)
+		// Do this only when Welcome Tour is not manually opened.
+		// NOTE: at the moment, 'starter-page-templates' assets are not loaded on /site-editor/ page so 'setOpenState' may be undefined
+		if ( variant === BLANK_CANVAS_VARIANT && ! isManuallyOpened && setOpenState ) {
+			setOpenState( 'OPEN_FOR_BLANK_CANVAS' );
+			return null;
 		}
 
-		if ( Guide && GuidePage ) {
+		if ( variant === DEFAULT_VARIANT ) {
+			return (
+				<LocaleProvider localeSlug={ window.wpcomBlockEditorNuxLocale ?? i18nDefaultLocaleSlug }>
+					<LaunchWpcomWelcomeTour />;
+				</LocaleProvider>
+			);
+		}
+
+		if ( variant === 'modal' && Guide && GuidePage ) {
 			return <WpcomNux />;
 		}
 

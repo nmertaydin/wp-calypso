@@ -21,6 +21,10 @@ import {
 	LicenseSortField,
 } from 'calypso/jetpack-cloud/sections/partner-portal/types';
 
+jest.mock( 'uuid', () => ( {
+	v4: () => 'noticeid',
+} ) );
+
 describe( 'handlers', () => {
 	describe( '#fetchLicensesHandler()', () => {
 		test( 'should return an http request action', () => {
@@ -31,6 +35,8 @@ describe( 'handlers', () => {
 				search: '',
 				sortField: LicenseSortField.IssuedAt,
 				sortDirection: LicenseSortDirection.Descending,
+				page: 2,
+				perPage: 3,
 				fetcher: 'wpcomJetpackLicensing',
 			};
 			const expected = {
@@ -43,6 +49,8 @@ describe( 'handlers', () => {
 					filter: 'not_revoked',
 					sort_field: 'issued_at',
 					sort_direction: 'desc',
+					page: 2,
+					per_page: 3,
 				},
 				formData: undefined,
 				onSuccess: action,
@@ -95,6 +103,8 @@ describe( 'handlers', () => {
 				search: 'foo',
 				sortField: LicenseSortField.IssuedAt,
 				sortDirection: LicenseSortDirection.Descending,
+				page: 2,
+				perPage: 3,
 				fetcher: 'wpcomJetpackLicensing',
 			};
 			const expected = {
@@ -108,6 +118,7 @@ describe( 'handlers', () => {
 					search: action.search,
 					sort_field: 'issued_at',
 					sort_direction: 'desc',
+					per_page: 3,
 				},
 				formData: undefined,
 				onSuccess: action,
@@ -150,6 +161,41 @@ describe( 'handlers', () => {
 
 			expect( fetchLicensesHandler( action ) ).toEqual( expected );
 		} );
+
+		test( 'should return an http request action with pagination params', () => {
+			const { fetchLicensesHandler } = handlers;
+			const action = {
+				type: 'TEST_ACTION',
+				filter: LicenseFilter.Revoked,
+				search: '',
+				sortField: LicenseSortField.RevokedAt,
+				sortDirection: LicenseSortDirection.Ascending,
+				page: 2,
+				perPage: 3,
+			};
+			const expected = {
+				type: WPCOM_HTTP_REQUEST,
+				body: undefined,
+				method: 'GET',
+				path: '/jetpack-licensing/licenses',
+				query: {
+					apiNamespace: 'wpcom/v2',
+					filter: 'revoked',
+					sort_field: 'revoked_at',
+					sort_direction: 'asc',
+					page: 2,
+					per_page: 3,
+				},
+				formData: undefined,
+				onSuccess: action,
+				onFailure: action,
+				onProgress: action,
+				onStreamRecord: action,
+				options: { options: { fetcher: action.fetcher } },
+			};
+
+			expect( fetchLicensesHandler( action ) ).toEqual( expected );
+		} );
 	} );
 
 	describe( '#receiveLicensesHandler()', () => {
@@ -172,7 +218,7 @@ describe( 'handlers', () => {
 				type: 'NOTICE_CREATE',
 				notice: {
 					showDismiss: true,
-					noticeId: '1',
+					noticeId: 'noticeid',
 					status: 'is-error',
 					text: translate( 'Failed to retrieve your licenses. Please try again later.' ),
 				},

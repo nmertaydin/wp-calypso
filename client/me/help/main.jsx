@@ -20,14 +20,14 @@ import Main from 'calypso/components/main';
 import MeSidebarNavigation from 'calypso/me/sidebar-navigation';
 import PageViewTracker from 'calypso/lib/analytics/page-view-tracker';
 import QueryUserPurchases from 'calypso/components/data/query-user-purchases';
+import FormattedHeader from 'calypso/components/formatted-header';
 import { getCurrentUserId, isCurrentUserEmailVerified } from 'calypso/state/current-user/selectors';
 import QueryConciergeInitial from 'calypso/components/data/query-concierge-initial';
 import getConciergeScheduleId from 'calypso/state/selectors/get-concierge-schedule-id.js';
 import getConciergeNextAppointment from 'calypso/state/selectors/get-concierge-next-appointment';
 import { localizeUrl } from 'calypso/lib/i18n-utils';
 import { getUserPurchases, isFetchingUserPurchases } from 'calypso/state/purchases/selectors';
-import { planHasFeature } from 'calypso/lib/plans';
-import { FEATURE_BUSINESS_ONBOARDING } from 'calypso/lib/plans/constants';
+import { planHasFeature, FEATURE_BUSINESS_ONBOARDING } from '@automattic/calypso-products';
 
 /**
  * Style dependencies
@@ -295,6 +295,10 @@ class Help extends React.PureComponent {
 		} );
 	};
 
+	trackContactUsClick = () => {
+		recordTracksEvent( 'calypso_help_header_button_click' );
+	};
+
 	getPlaceholders = () => (
 		<Main className="help" wideLayout>
 			<MeSidebarNavigation />
@@ -312,7 +316,7 @@ class Help extends React.PureComponent {
 	};
 
 	render() {
-		const { isEmailVerified, userId, isLoading } = this.props;
+		const { isEmailVerified, userId, isLoading, translate } = this.props;
 
 		if ( isLoading ) {
 			return this.getPlaceholders();
@@ -322,6 +326,20 @@ class Help extends React.PureComponent {
 			<Main className="help" wideLayout>
 				<PageViewTracker path="/help" title="Help" />
 				<MeSidebarNavigation />
+
+				<div className="help__heading">
+					<FormattedHeader
+						brandFont
+						headerText={ translate( 'Support' ) }
+						subHeaderText={ translate( 'Get help with your WordPress.com site' ) }
+						align="left"
+					/>
+					<div className="help__contact-us-header-button">
+						<Button onClick={ this.trackContactUsClick } href="/help/contact/">
+							{ translate( 'Contact support' ) }
+						</Button>
+					</div>
+				</div>
 				<HelpSearch onSearch={ this.setIsSearching } />
 				{ ! this.state.isSearching && (
 					<div className="help__inner-wrapper">

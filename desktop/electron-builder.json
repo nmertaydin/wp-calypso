@@ -6,16 +6,14 @@
 		"buildResources": "./resource/icons",
 		"output": "./release"
 	},
-	"files": [
-		"package.json",
-		"build/desktop.js",
-		"build/*.desktop.js",
-		"build/assets-*.json",
-		"public_desktop",
-		"public/**/*",
-		"public/**/*.css.map",
-		"config/*.json"
+	"publish": [
+		{
+			"provider": "github",
+			"owner": "Automattic",
+			"repo": "wp-desktop"
+		}
 	],
+	"files": [ "dist", "package.json", "config/*.json" ],
 	"mac": {
 		"category": "public.app-category.social-networking",
 		"entitlements": "./resource/macos/entitlements.mac.plist",

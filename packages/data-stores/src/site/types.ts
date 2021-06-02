@@ -65,6 +65,7 @@ export interface CreateSiteParams {
 		selected_features?: FeatureId[];
 		wpcom_public_coming_soon?: number;
 		anchor_fm_podcast_id?: string;
+		is_blank_canvas?: boolean;
 	};
 }
 
@@ -131,6 +132,7 @@ export interface Cart {
 }
 
 export interface Domain {
+	a_records_required_for_mapping?: string[];
 	primary_domain: boolean;
 	blog_id: number;
 	subscription_id?: any;
@@ -168,6 +170,7 @@ export interface Domain {
 	pending_whois_update: boolean;
 	tld_maintenance_end_time?: any;
 	ssl_status?: any;
+	subdomain_part?: string;
 	supports_gdpr_consent_management: boolean;
 	supports_transfer_approval: boolean;
 	domain_registration_agreement_url: string;

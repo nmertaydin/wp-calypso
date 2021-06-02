@@ -7,6 +7,7 @@ import { registerHandlers } from 'calypso/state/data-layer/handler-registry';
 import { ADMIN_MENU_REQUEST } from 'calypso/state/action-types';
 import { receiveAdminMenu } from 'calypso/state/admin-menu/actions';
 import { getSiteAdminUrl } from 'calypso/state/sites/selectors';
+import { addQueryArgs } from 'calypso/lib/url';
 
 export const requestFetchAdminMenu = ( action ) =>
 	http(
@@ -20,7 +21,20 @@ export const requestFetchAdminMenu = ( action ) =>
 
 const sanitizeUrl = ( url, wpAdminUrl ) => {
 	const isSafeInternalUrl = new RegExp( '^/' ).test( url );
-	const isSafeWpAdminUrl = new RegExp( `^${ wpAdminUrl }` ).test( url );
+	// The replace function removes the protocol.
+	const isSafeWpAdminUrl = new RegExp( `^${ wpAdminUrl?.replace( /^https?:\/\//, '' ) }` ).test(
+		url?.replace( /^https?:\/\//, '' )
+	);
+
+	if ( isSafeWpAdminUrl ) {
+		url = addQueryArgs(
+			{
+				return: document.location.href, // Gives WP Admin a chance to return to where we started from.
+			},
+			url
+		);
+	}
+
 	if ( isSafeInternalUrl || isSafeWpAdminUrl ) {
 		return url;
 	}

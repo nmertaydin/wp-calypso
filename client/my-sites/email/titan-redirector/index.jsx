@@ -5,7 +5,6 @@ import React, { Component } from 'react';
 import { localize } from 'i18n-calypso';
 import { connect } from 'react-redux';
 import page from 'page';
-import { map, fromPairs } from 'lodash-es';
 
 /**
  * Internal dependencies
@@ -22,6 +21,7 @@ import { addQueryArgs } from 'calypso/lib/route';
 import { login } from 'calypso/lib/paths';
 import getCurrentQueryArguments from 'calypso/state/selectors/get-current-query-arguments';
 import getCurrentRoute from 'calypso/state/selectors/get-current-route';
+import { getTitanProductName } from 'calypso/lib/titan';
 import QuerySites from 'calypso/components/data/query-sites';
 
 class TitanRedirector extends Component {
@@ -116,7 +116,14 @@ class TitanRedirector extends Component {
 				<EmptyContent
 					title={ translate( "We couldn't locate your account details" ) }
 					line={ translate(
-						'Please check that you purchased the Email subscription, as only the original purchaser can manage billing and add more accounts'
+						'Please check that you purchased the %(titanProductName)s subscription, as only the original purchaser can manage billing and add more accounts',
+						{
+							args: {
+								titanProductName: getTitanProductName(),
+							},
+							comment:
+								'%(titanProductName) is the name of the product, which should be "Professional Email" translated',
+						}
 					) }
 					action={ translate( 'Contact support' ) }
 					actionURL={ SUPPORT_ROOT }
@@ -163,13 +170,13 @@ export default connect( ( state ) => {
 	const sitesItems = getSitesItems( state );
 
 	// eslint-disable-next-line wpcalypso/redux-no-bound-selectors
-	const siteSlugPairs = map( sitesItems, ( site ) => {
+	const siteSlugPairs = Object.values( sitesItems ).map( ( site ) => {
 		return [ site.ID, getSiteSlug( state, site.ID ) ];
 	} );
 
 	return {
 		isLoggedIn: isUserLoggedIn( state ),
-		siteSlugs: fromPairs( siteSlugPairs ),
+		siteSlugs: Object.fromEntries( siteSlugPairs ),
 		currentQuery: getCurrentQueryArguments( state ),
 		currentRoute: getCurrentRoute( state ),
 		hasAllSitesLoaded: hasAllSitesList( state ),

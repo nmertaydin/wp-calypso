@@ -3,15 +3,12 @@
  */
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import styled from '@emotion/styled';
 import { FormStatus, useFormStatus } from '@automattic/composite-checkout';
 import { useTranslate } from 'i18n-calypso';
 import { useShoppingCart } from '@automattic/shopping-cart';
-import type {
-	RemoveProductFromCart,
-	RemoveCouponFromCart,
-	CouponStatus,
-} from '@automattic/shopping-cart';
+import type { RemoveProductFromCart, CouponStatus } from '@automattic/shopping-cart';
+import { styled } from '@automattic/wpcom-checkout';
+import { useSelector } from 'react-redux';
 
 /**
  * Internal dependencies
@@ -19,12 +16,18 @@ import type {
 import joinClasses from './join-classes';
 import Coupon from './coupon';
 import { WPOrderReviewLineItems, WPOrderReviewSection } from './wp-order-review-line-items';
-import { isDomainRegistration, isDomainTransfer } from 'calypso/lib/products-values';
+import {
+	isDomainMapping,
+	isDomainRegistration,
+	isDomainTransfer,
+} from '@automattic/calypso-products';
 import type { CouponFieldStateProps } from '../hooks/use-coupon-field-state';
 import type { GetProductVariants } from '../hooks/product-variants';
 import type { OnChangeItemVariant } from './item-variation-picker';
+import { hasP2PlusPlan } from 'calypso/lib/cart-values/cart-items';
+import getSelectedSite from 'calypso/state/ui/selectors/get-selected-site';
 
-const DomainURL = styled.div`
+const SiteSummary = styled.div`
 	color: ${ ( props ) => props.theme.colors.textColorLight };
 	font-size: 14px;
 	margin-top: -10px;
@@ -70,8 +73,6 @@ const CouponEnableButton = styled.button`
 export default function WPCheckoutOrderReview( {
 	className,
 	removeProductFromCart,
-	removeCoupon,
-	couponStatus,
 	couponFieldStateProps,
 	getItemVariants,
 	onChangePlanLength,
@@ -80,37 +81,54 @@ export default function WPCheckoutOrderReview( {
 	createUserAndSiteBeforeTransaction,
 }: {
 	className?: string;
-	removeProductFromCart: RemoveProductFromCart;
-	removeCoupon: RemoveCouponFromCart;
-	couponStatus: CouponStatus;
+	removeProductFromCart?: RemoveProductFromCart;
 	couponFieldStateProps: CouponFieldStateProps;
-	getItemVariants: GetProductVariants;
-	onChangePlanLength: OnChangeItemVariant;
+	getItemVariants?: GetProductVariants;
+	onChangePlanLength?: OnChangeItemVariant;
 	siteUrl?: string;
 	isSummary?: boolean;
 	createUserAndSiteBeforeTransaction?: boolean;
 } ): JSX.Element {
 	const translate = useTranslate();
 	const [ isCouponFieldVisible, setCouponFieldVisible ] = useState( false );
-	const { responseCart } = useShoppingCart();
+	const { responseCart, removeCoupon, couponStatus } = useShoppingCart();
 	const isPurchaseFree = responseCart.total_cost_integer === 0;
 
-	const firstDomainItem = responseCart.products.find(
-		( product ) => isDomainTransfer( product ) || isDomainRegistration( product )
+	const selectedSiteData = useSelector( getSelectedSite );
+
+	const primaryDomain = selectedSiteData?.options?.is_mapped_domain
+		? selectedSiteData?.domain
+		: null;
+	const firstDomainProduct = responseCart.products.find(
+		( product ) =>
+			isDomainTransfer( product ) || isDomainRegistration( product ) || isDomainMapping( product )
 	);
-	const domainUrl = firstDomainItem ? firstDomainItem.meta : siteUrl;
+	const domainUrl = primaryDomain ?? firstDomainProduct?.meta ?? siteUrl;
+
 	const removeCouponAndClearField = () => {
 		couponFieldStateProps.setCouponFieldValue( '' );
 		setCouponFieldVisible( false );
 		return removeCoupon();
 	};
 
+	const planIsP2Plus = hasP2PlusPlan( responseCart );
+
 	return (
 		<div
 			className={ joinClasses( [ className, 'checkout-review-order', isSummary && 'is-summary' ] ) }
 		>
-			{ domainUrl && 'no-user' !== domainUrl && (
-				<DomainURL>{ translate( 'Site: %s', { args: domainUrl } ) }</DomainURL>
+			{ ! planIsP2Plus && domainUrl && 'no-user' !== domainUrl && (
+				<SiteSummary>{ translate( 'Site: %s', { args: domainUrl } ) }</SiteSummary>
+			) }
+			{ planIsP2Plus && selectedSiteData?.name && (
+				<SiteSummary>
+					{ translate( 'Upgrade: {{strong}}%s{{/strong}}', {
+						args: selectedSiteData.name,
+						components: {
+							strong: <strong />,
+						},
+					} ) }
+				</SiteSummary>
 			) }
 
 			<WPOrderReviewSection>
@@ -139,11 +157,9 @@ WPCheckoutOrderReview.propTypes = {
 	isSummary: PropTypes.bool,
 	className: PropTypes.string,
 	removeProductFromCart: PropTypes.func,
-	removeCoupon: PropTypes.func,
 	getItemVariants: PropTypes.func,
 	onChangePlanLength: PropTypes.func,
 	siteUrl: PropTypes.string,
-	couponStatus: PropTypes.string,
 	couponFieldStateProps: PropTypes.object.isRequired,
 };
 

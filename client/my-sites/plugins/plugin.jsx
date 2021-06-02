@@ -4,7 +4,7 @@
 import React from 'react';
 import { localize } from 'i18n-calypso';
 import { connect } from 'react-redux';
-import { includes, uniq } from 'lodash';
+import { includes } from 'lodash';
 import { isEnabled } from '@automattic/calypso-config';
 
 /**
@@ -106,8 +106,8 @@ class SinglePlugin extends React.Component {
 		return ! shouldUseHistoryBack ? '/plugins/manage/' + ( siteUrl || '' ) : null;
 	};
 
-	displayHeader( calypsoify ) {
-		if ( ! this.props.selectedSite || calypsoify ) {
+	displayHeader() {
+		if ( ! this.props.selectedSite ) {
 			return <Card className="plugins__installed-header" />;
 		}
 
@@ -287,7 +287,7 @@ class SinglePlugin extends React.Component {
 				<PluginNotices pluginId={ plugin.id } sites={ this.props.sites } plugins={ [ plugin ] } />
 
 				<div className="plugin__page">
-					{ this.displayHeader( calypsoify ) }
+					{ this.displayHeader() }
 					<PluginMeta
 						plugin={ plugin }
 						siteUrl={ this.props.siteUrl }
@@ -314,7 +314,7 @@ export default connect(
 	( state, props ) => {
 		const selectedSiteId = getSelectedSiteId( state );
 		const sites = getSelectedOrAllSitesWithPlugins( state );
-		const siteIds = uniq( siteObjectsToSiteIds( sites ) );
+		const siteIds = [ ...new Set( siteObjectsToSiteIds( sites ) ) ];
 
 		return {
 			plugin: getPluginOnSites( state, siteIds, props.pluginSlug ),

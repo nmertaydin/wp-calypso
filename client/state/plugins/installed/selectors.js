@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import { every, filter, find, get, pick, reduce, some, sortBy, values } from 'lodash';
+import { filter, find, get, pick, reduce, some, sortBy } from 'lodash';
 
 /**
  * Internal dependencies
@@ -89,7 +89,7 @@ export function getPlugins( state, siteIds, pluginFilter ) {
 		pluginList = filter( pluginList, _filters[ pluginFilter ] );
 	}
 
-	return values( sortBy( pluginList, ( item ) => item.slug.toLowerCase() ) );
+	return sortBy( pluginList, ( item ) => item.slug.toLowerCase() );
 }
 
 export function getPluginsWithUpdates( state, siteIds ) {
@@ -148,7 +148,7 @@ export function getSitesWithoutPlugin( state, siteIds, pluginSlug ) {
 			return false;
 		}
 
-		return every( installedOnSiteIds, function ( installedOnSiteId ) {
+		return installedOnSiteIds.every( function ( installedOnSiteId ) {
 			return installedOnSiteId !== siteId;
 		} );
 	} );
@@ -208,6 +208,19 @@ export function isPluginActionStatus( state, siteId, pluginId, action, status ) 
  */
 export function isPluginActionInProgress( state, siteId, pluginId, action ) {
 	return isPluginActionStatus( state, siteId, pluginId, action, 'inProgress' );
+}
+
+/**
+ * Whether the plugin's status for one or more recent actions is completed.
+ *
+ * @param  {object}       state    Global state tree
+ * @param  {number}       siteId   ID of the site
+ * @param  {string}       pluginId ID of the plugin
+ * @param  {string|Array} action   Action, or array of actions of interest
+ * @returns {boolean}              True if one or more specified actions are completed, false otherwise.
+ */
+export function isPluginActionCompleted( state, siteId, pluginId, action ) {
+	return isPluginActionStatus( state, siteId, pluginId, action, 'completed' );
 }
 
 /**

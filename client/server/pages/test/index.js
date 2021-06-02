@@ -74,11 +74,6 @@ jest.mock( 'calypso/state/redux-store', () => ( {
 
 jest.mock( 'calypso/state/reducer', () => jest.fn() );
 
-jest.mock( 'calypso/state/action-types', () => ( {
-	DESERIALIZE: 'DESERIALIZE',
-	LOCALE_SET: 'LOCALE_SET',
-} ) );
-
 jest.mock( 'calypso/state/current-user/actions', () => ( {
 	setCurrentUser: jest.fn(),
 } ) );
@@ -331,7 +326,7 @@ const buildApp = ( environment ) => {
 					url: defaultUrl,
 					method: 'GET',
 					get: jest.fn(),
-					connection: {},
+					socket: {},
 					logger: {
 						error: jest.fn(),
 					},
@@ -472,18 +467,6 @@ const assertDefaultContext = ( { url, entry } ) => {
 		] );
 	} );
 
-	it( 'sets the abTestHepler when config is enabled', async () => {
-		app.withConfigEnabled( { 'dev/test-helper': true } );
-		const { request } = await app.run();
-		expect( request.context.abTestHelper ).toEqual( true );
-	} );
-
-	it( 'sets the abTestHepler when config is disabled', async () => {
-		app.withConfigEnabled( { 'dev/test-helper': false } );
-		const { request } = await app.run();
-		expect( request.context.abTestHelper ).toEqual( false );
-	} );
-
 	it( 'sets the preferencesHelper when config is enabled', async () => {
 		app.withConfigEnabled( { 'dev/preferences-helper': true } );
 		const { request } = await app.run();
@@ -521,7 +504,7 @@ const assertDefaultContext = ( { url, entry } ) => {
 			app.withMockedVariable( process.env, 'NODE_ENV', 'development' );
 		} );
 
-		it( 'uses the value from DEV_TARGET ', async () => {
+		it( 'uses the value from DEV_TARGET', async () => {
 			app.withMockedVariable( process.env, 'DEV_TARGET', 'fallback' );
 			const { request } = await app.run();
 			expect( request.context.target ).toEqual( 'fallback' );
@@ -555,30 +538,6 @@ const assertDefaultContext = ( { url, entry } ) => {
 			app.withNonEvergreenBrowser();
 			const { request } = await app.run();
 			expect( request.context.target ).toEqual( 'fallback' );
-		} );
-	} );
-
-	describe( 'sets the target in desktop mode', () => {
-		it( 'defaults to evergreen in desktop mode', async () => {
-			const customApp = buildApp( 'desktop' );
-			customApp.withServerRender( '' );
-			customApp.withMockFilesystem();
-
-			const { request } = await customApp.run( { customApp } );
-
-			expect( request.context.target ).toEqual( 'evergreen' );
-			expect( request.context.env ).toEqual( 'desktop' );
-		} );
-
-		it( 'defaults to evergreen in desktop-development mode', async () => {
-			const customApp = buildApp( 'desktop-development' );
-			customApp.withServerRender( '' );
-			customApp.withMockFilesystem();
-
-			const { request } = await customApp.run( { customApp } );
-
-			expect( request.context.target ).toEqual( 'evergreen' );
-			expect( request.context.env ).toEqual( 'desktop-development' );
 		} );
 	} );
 
@@ -638,15 +597,6 @@ const assertDefaultContext = ( { url, entry } ) => {
 		customApp.withMockFilesystem();
 		const { request } = await customApp.run();
 		expect( request.context.app.isDebug ).toEqual( true );
-	} );
-
-	it( 'sets the static files urls', async () => {
-		const { request } = await app.run();
-		const staticUrls = request.context.app.staticUrls;
-		expect( staticUrls ).toEqual( {
-			'tinymce/skins/wordpress/wp-content.css':
-				'/calypso/tinymce/skins/wordpress/wp-content.css?v=hash',
-		} );
 	} );
 
 	describe( 'with environment wpcalypso', () => {
@@ -956,7 +906,6 @@ const assertSection = ( { url, entry, sectionName, sectionGroup } ) => {
 			app.withConfigEnabled( {
 				'wpcom-user-bootstrap': true,
 				'use-translation-chunks': true,
-				'login/native-login-links': true,
 			} );
 			app.withBootstrapUser( {} );
 			app.withReduxStore( theStore );
@@ -980,26 +929,24 @@ const assertSection = ( { url, entry, sectionName, sectionGroup } ) => {
 			expect( request.context.languageRevisions ).toEqual( { en: 1234 } );
 		} );
 
-		it( 'gets the redirect url for https requestss', async () => {
+		it( 'gets the redirect url for https requests', async () => {
 			await app.run( {
 				request: {
 					get: jest.fn( ( header ) => ( header === 'X-Forwarded-Proto' ? 'https' : undefined ) ),
 				},
 			} );
 			expect( app.getMocks().login ).toHaveBeenCalledWith( {
-				isNative: true,
 				redirectTo: `https://valid.hostname${ url }`,
 			} );
 		} );
 
-		it( 'gets the redirect url for http requestss', async () => {
+		it( 'gets the redirect url for http requests', async () => {
 			await app.run( {
 				request: {
 					get: jest.fn( ( header ) => ( header === 'X-Forwarded-Proto' ? 'http' : undefined ) ),
 				},
 			} );
 			expect( app.getMocks().login ).toHaveBeenCalledWith( {
-				isNative: true,
 				redirectTo: `http://valid.hostname${ url }`,
 			} );
 		} );
@@ -1120,7 +1067,7 @@ describe( 'main app', () => {
 	} );
 
 	describe( 'Middleware localSubdomains', () => {
-		describe( 'sets locale info in the request context ', () => {
+		describe( 'sets locale info in the request context', () => {
 			it( 'rtl language', async () => {
 				const { request } = await app.run( {
 					request: {

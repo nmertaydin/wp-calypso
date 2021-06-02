@@ -1,7 +1,6 @@
 /**
  * External dependencies
  */
-import { noop } from 'lodash';
 import i18n from 'i18n-calypso';
 
 /**
@@ -22,11 +21,12 @@ import {
 	TYPE_PREMIUM,
 	TYPE_BUSINESS,
 	TYPE_ECOMMERCE,
-} from 'calypso/lib/plans/constants';
+} from '@automattic/calypso-products';
+
+const noop = () => {};
 
 export function generateSteps( {
 	addPlanToCart = noop,
-	addDomainUpsellToCart = noop,
 	createAccount = noop,
 	createSite = noop,
 	createWpForTeamsSite = noop,
@@ -37,7 +37,6 @@ export function generateSteps( {
 	addDomainToCart = noop,
 	launchSiteApi = noop,
 	isPlanFulfilled = noop,
-	isFreePlansDomainUpsellFulfilled = noop,
 	isDomainFulfilled = noop,
 	isSiteTypeFulfilled = noop,
 	isSiteTopicFulfilled = noop,
@@ -117,14 +116,6 @@ export function generateSteps( {
 				subHeaderText: i18n.translate( 'Select a domain name for your website' ),
 			},
 			dependencies: [ 'siteSlug' ],
-		},
-
-		'domain-upsell': {
-			stepName: 'domain-upsell',
-			apiRequestFunction: addDomainUpsellToCart,
-			fulfilledStepCallback: isFreePlansDomainUpsellFulfilled,
-			dependencies: [ 'domainItem', 'cartItem', 'siteSlug' ],
-			providesDependencies: [ 'selectedDomainUpsellItem' ],
 		},
 
 		'plans-site-selected': {
@@ -719,6 +710,13 @@ export function generateSteps( {
 			defaultDependencies: {
 				cartItem: PLAN_ECOMMERCE_MONTHLY,
 			},
+		},
+
+		design: {
+			stepName: 'design-picker',
+			dependencies: [ 'siteSlug' ],
+			providesDependencies: [ 'selectedDesign' ],
+			optionalDependencies: [ 'selectedDesign' ],
 		},
 	};
 }

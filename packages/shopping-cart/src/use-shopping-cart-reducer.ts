@@ -152,7 +152,10 @@ function shoppingCartReducer(
 
 		case 'ADD_COUPON': {
 			const newCoupon = action.couponToAdd;
-			if ( couponStatus === 'applied' || couponStatus === 'pending' ) {
+			if (
+				( couponStatus === 'applied' || couponStatus === 'pending' ) &&
+				newCoupon === state.responseCart.coupon
+			) {
 				debug( `coupon status is '${ couponStatus }'; not submitting again` );
 				return state;
 			}
@@ -265,15 +268,11 @@ function getUpdatedCouponStatus(
 	responseCart: ResponseCart
 ): CouponStatus {
 	const isCouponApplied = responseCart.is_coupon_applied;
-	const couponDiscounts = responseCart.coupon_discounts_integer.length;
 
 	if ( isCouponApplied ) {
 		return 'applied';
 	}
-	if ( currentCouponStatus === 'pending' && couponDiscounts <= 0 ) {
-		return 'invalid';
-	}
-	if ( currentCouponStatus === 'pending' && couponDiscounts > 0 ) {
+	if ( currentCouponStatus === 'pending' ) {
 		return 'rejected';
 	}
 	return 'fresh';

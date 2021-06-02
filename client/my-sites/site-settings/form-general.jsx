@@ -26,8 +26,7 @@ import FormSettingExplanation from 'calypso/components/forms/form-setting-explan
 import Timezone from 'calypso/components/timezone';
 import SiteIconSetting from './site-icon-setting';
 import UpsellNudge from 'calypso/blocks/upsell-nudge';
-import { isBusiness } from 'calypso/lib/products-values';
-import { FEATURE_NO_BRANDING, PLAN_BUSINESS } from 'calypso/lib/plans/constants';
+import { isBusiness, FEATURE_NO_BRANDING, PLAN_BUSINESS } from '@automattic/calypso-products';
 import QuerySiteSettings from 'calypso/components/data/query-site-settings';
 import { isJetpackSite, isCurrentPlanPaid } from 'calypso/state/sites/selectors';
 import isSiteComingSoon from 'calypso/state/selectors/is-site-coming-soon';
@@ -46,6 +45,7 @@ import { getDomainsBySiteId } from 'calypso/state/sites/domains/selectors';
 import QuerySiteDomains from 'calypso/components/data/query-site-domains';
 import FormInputCheckbox from 'calypso/components/forms/form-checkbox';
 import isSiteWPForTeams from 'calypso/state/selectors/is-site-wpforteams';
+import isSiteP2Hub from 'calypso/state/selectors/is-site-p2-hub';
 import isAtomicAndEditingToolkitPluginDeactivated from 'calypso/state/selectors/is-atomic-and-editing-toolkit-plugin-deactivated';
 import QueryJetpackPlugins from 'calypso/components/data/query-jetpack-plugins';
 
@@ -284,7 +284,7 @@ export class SiteSettingsFormGeneral extends Component {
 				<FormSettingExplanation>
 					{ translate( "The site's primary language." ) }
 					&nbsp;
-					<a href={ config.isEnabled( 'me/account' ) ? '/me/account' : '/settings/account/' }>
+					<a href={ '/me/account' }>
 						{ translate( "You can also modify your interface's language in your profile." ) }
 					</a>
 				</FormSettingExplanation>
@@ -553,8 +553,12 @@ export class SiteSettingsFormGeneral extends Component {
 			handleSubmitForm,
 			isSavingSettings,
 			siteId,
+			isP2HubSite,
 		} = this.props;
 
+		if ( isP2HubSite ) {
+			return <></>;
+		}
 		return (
 			<>
 				{ siteId && <QueryJetpackPlugins siteIds={ [ siteId ] } /> }
@@ -571,28 +575,6 @@ export class SiteSettingsFormGeneral extends Component {
 				</Card>
 			</>
 		);
-	}
-
-	disablePrivacySettings = ( e ) => {
-		e.target.blur();
-	};
-
-	privacySettingsWrapper() {
-		if ( this.props.isUnlaunchedSite ) {
-			return (
-				<>
-					{ this.renderLaunchSite() }
-					<div
-						className="site-settings__disable-privacy-settings"
-						onFocus={ this.disablePrivacySettings }
-					>
-						{ this.privacySettings() }
-					</div>
-				</>
-			);
-		}
-
-		return <>{ this.privacySettings() }</>;
 	}
 
 	render() {
@@ -634,7 +616,7 @@ export class SiteSettingsFormGeneral extends Component {
 					</form>
 				</Card>
 
-				{ this.privacySettingsWrapper() }
+				{ this.props.isUnlaunchedSite ? this.renderLaunchSite() : this.privacySettings() }
 
 				{ ! isWPForTeamsSite && ! siteIsJetpack && (
 					<div className="site-settings__footer-credit-container">
@@ -704,6 +686,7 @@ const connectComponent = connect(
 			isPaidPlan: isCurrentPlanPaid( state, siteId ),
 			siteDomains: getDomainsBySiteId( state, siteId ),
 			isWPForTeamsSite: isSiteWPForTeams( state, siteId ),
+			isP2HubSite: isSiteP2Hub( state, siteId ),
 			isAtomicAndEditingToolkitDeactivated: isAtomicAndEditingToolkitPluginDeactivated(
 				state,
 				siteId

@@ -1,10 +1,9 @@
 /**
  * External dependencies
  */
-import React, { ReactElement } from 'react';
+import React, { ReactElement, useContext } from 'react';
 import { useTranslate } from 'i18n-calypso';
-import { useSelector } from 'react-redux';
-import { find } from 'lodash';
+import { useSelector, useDispatch } from 'react-redux';
 
 /**
  * Internal dependencies
@@ -17,8 +16,10 @@ import NavItem from 'calypso/components/section-nav/item';
 import Count from 'calypso/components/count';
 import Search from 'calypso/components/search';
 import UrlSearch from 'calypso/lib/url-search';
-import QueryJetpackPartnerPortalLicenseCounts from 'calypso/components/data/query-jetpack-partner-portal-license-counts';
 import { getLicenseCounts } from 'calypso/state/partner-portal/licenses/selectors';
+import { recordTracksEvent } from 'calypso/state/analytics/actions';
+import { internalToPublicLicenseFilter } from 'calypso/jetpack-cloud/sections/partner-portal/utils';
+import LicenseListContext from 'calypso/jetpack-cloud/sections/partner-portal/license-list-context';
 
 /**
  * Style dependencies
@@ -26,16 +27,16 @@ import { getLicenseCounts } from 'calypso/state/partner-portal/licenses/selector
 import './style.scss';
 
 interface Props {
-	filter: LicenseFilter;
-	search: string;
 	doSearch: ( query: string ) => void;
 	getSearchOpen: () => boolean;
 }
 
-function LicenseStateFilter( { filter, search, doSearch }: Props ): ReactElement {
+function LicenseStateFilter( { doSearch }: Props ): ReactElement {
+	const dispatch = useDispatch();
 	const translate = useTranslate();
+	const { filter, search } = useContext( LicenseListContext );
 	const counts = useSelector( getLicenseCounts );
-	const basePath = '/partner-portal/';
+	const basePath = '/partner-portal/licenses/';
 
 	const navItems = [
 		{
@@ -44,11 +45,11 @@ function LicenseStateFilter( { filter, search, doSearch }: Props ): ReactElement
 		},
 		{
 			key: LicenseFilter.Detached,
-			label: translate( 'Detached' ),
+			label: translate( 'Unassigned' ),
 		},
 		{
 			key: LicenseFilter.Attached,
-			label: translate( 'Attached' ),
+			label: translate( 'Assigned' ),
 		},
 		{
 			key: LicenseFilter.Revoked,
@@ -58,11 +59,23 @@ function LicenseStateFilter( { filter, search, doSearch }: Props ): ReactElement
 		...navItem,
 		count: counts[ navItem.key ] || 0,
 		selected: filter === navItem.key,
-		path: basePath + ( LicenseFilter.NotRevoked !== navItem.key ? navItem.key : '' ),
+		path: basePath + internalToPublicLicenseFilter( navItem.key ),
+		onClick: () => {
+			dispatch(
+				recordTracksEvent( 'calypso_partner_portal_license_list_state_filter_click', {
+					status: navItem.key,
+				} )
+			);
+		},
 		children: navItem.label,
 	} ) );
 
-	const selectedItem = find( navItems, 'selected' ) || navItems[ 0 ];
+	const selectedItem = navItems.find( ( i ) => i.selected ) || navItems[ 0 ];
+
+	const onSearch = ( query: string ) => {
+		dispatch( recordTracksEvent( 'calypso_partner_portal_license_list_search', { query } ) );
+		doSearch( query );
+	};
 
 	return (
 		<SectionNav
@@ -75,8 +88,6 @@ function LicenseStateFilter( { filter, search, doSearch }: Props ): ReactElement
 			selectedCount={ selectedItem.count }
 			className="license-state-filter"
 		>
-			<QueryJetpackPartnerPortalLicenseCounts />
-
 			<NavTabs
 				label={ translate( 'State' ) }
 				selectedText={ selectedItem.label }
@@ -91,7 +102,7 @@ function LicenseStateFilter( { filter, search, doSearch }: Props ): ReactElement
 				pinned
 				fitsContainer
 				initialValue={ search }
-				onSearch={ doSearch }
+				onSearch={ onSearch }
 				placeholder={ translate( 'Search licenses' ) }
 				delaySearch={ true }
 			/>

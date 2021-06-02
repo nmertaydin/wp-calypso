@@ -1,11 +1,10 @@
 /**
  * External dependencies
  */
-
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { translate } from 'i18n-calypso';
-import { has, identity, mapValues, pickBy } from 'lodash';
+import { has, mapValues, pickBy } from 'lodash';
 
 /**
  * Internal dependencies
@@ -16,10 +15,10 @@ import {
 	tryAndCustomize as tryAndCustomizeAction,
 	confirmDelete,
 	showThemePreview as themePreview,
-	showAutoLoadingHomepageWarning as showAutoLoadingHomepageWarningAction,
 } from 'calypso/state/themes/actions';
 import {
 	getJetpackUpgradeUrlIfPremiumTheme,
+	getTheme,
 	getThemeDetailsUrl,
 	getThemeHelpUrl,
 	getThemePurchaseUrl,
@@ -35,6 +34,8 @@ import getCustomizeUrl from 'calypso/state/selectors/get-customize-url';
 import { isJetpackSite, isJetpackSiteMultiSite } from 'calypso/state/sites/selectors';
 import canCurrentUser from 'calypso/state/selectors/can-current-user';
 import { getCurrentUser } from 'calypso/state/current-user/selectors';
+
+const identity = ( theme ) => theme;
 
 function getAllThemeOptions() {
 	const purchase = config.isEnabled( 'upgrades/checkout' )
@@ -100,6 +101,7 @@ function getAllThemeOptions() {
 		hideForTheme: ( state, themeId, siteId, origin ) =>
 			! isJetpackSite( state, siteId ) ||
 			origin === 'wpcom' ||
+			! getTheme( state, siteId, themeId ) ||
 			isThemeActive( state, themeId, siteId ),
 	};
 
@@ -140,10 +142,6 @@ function getAllThemeOptions() {
 			comment: 'label for previewing the theme demo website',
 		} ),
 		action: themePreview,
-	};
-
-	const showAutoLoadingHomepageWarning = {
-		action: showAutoLoadingHomepageWarningAction,
 	};
 
 	const signupLabel = translate( 'Pick this design', {
@@ -194,7 +192,6 @@ function getAllThemeOptions() {
 		info,
 		support,
 		help,
-		showAutoLoadingHomepageWarning,
 	};
 }
 export const connectOptions = connect(

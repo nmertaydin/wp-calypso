@@ -9,7 +9,6 @@ import {
 	filter,
 	forEach,
 	get,
-	head,
 	includes,
 	keys,
 	map,
@@ -44,6 +43,7 @@ import getCurrentQueryArguments from 'calypso/state/selectors/get-current-query-
 import Notice from 'calypso/components/notice';
 import LoggedOutForm from 'calypso/components/logged-out-form';
 import { login } from 'calypso/lib/paths';
+import { addQueryArgs } from 'calypso/lib/url';
 import formState from 'calypso/lib/form-state';
 import LoggedOutFormLinks from 'calypso/components/logged-out-form/links';
 import LoggedOutFormLinkItem from 'calypso/components/logged-out-form/link-item';
@@ -207,12 +207,7 @@ class SignupForm extends Component {
 			const socialInfo = { service, id_token, access_token };
 
 			this.props.createSocialUserFailed( socialInfo, userExistsError );
-			page(
-				login( {
-					isNative: config.isEnabled( 'login/native-login-links' ),
-					redirectTo: this.props.redirectToAfterLoginUrl,
-				} )
-			);
+			page( login( { redirectTo: this.props.redirectToAfterLoginUrl } ) );
 		}
 	}
 
@@ -288,7 +283,7 @@ class SignupForm extends Component {
 
 				if ( field === 'username' && ! includes( usernamesSearched, fields.username ) ) {
 					recordTracksEvent( 'calypso_signup_username_validation_failed', {
-						error: head( keys( fieldError ) ),
+						error: keys( fieldError )[ 0 ],
 						username: fields.username,
 					} );
 
@@ -297,7 +292,7 @@ class SignupForm extends Component {
 
 				if ( field === 'password' ) {
 					recordTracksEvent( 'calypso_signup_password_validation_failed', {
-						error: head( keys( fieldError ) ),
+						error: keys( fieldError )[ 0 ],
 					} );
 
 					timesPasswordValidationFailed++;
@@ -367,6 +362,14 @@ class SignupForm extends Component {
 	};
 
 	validateAndSaveForm = () => {
+		const data = this.getUserData();
+
+		// When a user moves away from the signup form without having entered
+		// anything do not show error messages, think going to click log in.
+		if ( data.username.length === 0 && data.password.length === 0 && data.email.length === 0 ) {
+			return;
+		}
+
 		this.formStateController.sanitize();
 		this.formStateController.validate();
 		this.props.save && this.props.save( this.state.form );
@@ -417,7 +420,6 @@ class SignupForm extends Component {
 		return login( {
 			isJetpack: this.isJetpack(),
 			from: this.props.from,
-			isNative: config.isEnabled( 'login/native-login-links' ),
 			redirectTo: this.props.redirectToAfterLoginUrl,
 			locale: this.props.locale,
 			oauth2ClientId: this.props.oauth2Client && this.props.oauth2Client.id,
@@ -426,8 +428,6 @@ class SignupForm extends Component {
 	}
 
 	getNoticeMessageWithLogin( notice ) {
-		const link = this.getLoginLink();
-
 		if ( notice.error === '2FA_enabled' ) {
 			return (
 				<span>
@@ -436,7 +436,7 @@ class SignupForm extends Component {
 						&nbsp;
 						{ this.props.translate( '{{a}}Log in now{{/a}} to finish signing up.', {
 							components: {
-								a: <a href={ link } onClick={ this.props.trackLoginMidFlow } />,
+								a: <a href={ this.getLoginLink() } onClick={ this.props.trackLoginMidFlow } />,
 							},
 						} ) }
 					</p>
@@ -479,12 +479,10 @@ class SignupForm extends Component {
 			return;
 		}
 
-		let link = this.getLoginLink();
-
 		return map( messages, ( message, error_code ) => {
 			if ( error_code === 'taken' ) {
 				const fieldValue = formState.getFieldValue( this.state.form, fieldName );
-				link += '&email_address=' + encodeURIComponent( fieldValue );
+				const link = addQueryArgs( { email_address: fieldValue }, this.getLoginLink() );
 				return (
 					<span key={ error_code }>
 						<p>
@@ -554,7 +552,11 @@ class SignupForm extends Component {
 					</>
 				) }
 
-				<FormLabel htmlFor="email">{ this.props.translate( 'Your email address' ) }</FormLabel>
+				<FormLabel htmlFor="email">
+					{ this.props.isReskinned
+						? this.props.translate( 'Email address' )
+						: this.props.translate( 'Your email address' ) }
+				</FormLabel>
 				<FormTextInput
 					autoCapitalize="off"
 					autoCorrect="off"
@@ -580,7 +582,9 @@ class SignupForm extends Component {
 				{ this.props.displayUsernameInput && (
 					<>
 						<FormLabel htmlFor="username">
-							{ this.props.translate( 'Choose a username' ) }
+							{ this.props.isReskinned
+								? this.props.translate( 'Username' )
+								: this.props.translate( 'Choose a username' ) }
 						</FormLabel>
 						<FormTextInput
 							autoCapitalize="off"
@@ -602,7 +606,11 @@ class SignupForm extends Component {
 					</>
 				) }
 
-				<FormLabel htmlFor="password">{ this.props.translate( 'Choose a password' ) }</FormLabel>
+				<FormLabel htmlFor="password">
+					{ this.props.isReskinned
+						? this.props.translate( 'Password' )
+						: this.props.translate( 'Choose a password' ) }
+				</FormLabel>
 				<FormPasswordInput
 					className="signup-form__input"
 					disabled={ this.state.submitting || this.props.disabled }
@@ -850,25 +858,23 @@ class SignupForm extends Component {
 	footerLink() {
 		const { flowName, showRecaptchaToS, translate } = this.props;
 
-		const logInUrl = config.isEnabled( 'login/native-login-links' )
-			? this.getLoginLink()
-			: localizeUrl( config( 'login_url' ), this.props.locale );
-
 		return (
 			<>
-				<LoggedOutFormLinks>
-					<LoggedOutFormLinkItem href={ logInUrl }>
-						{ flowName === 'onboarding'
-							? translate( 'Log in to create a site for your existing account.' )
-							: translate( 'Already have a WordPress.com account?' ) }
-					</LoggedOutFormLinkItem>
-					{ this.props.oauth2Client && (
-						<LoggedOutFormBackLink
-							oauth2Client={ this.props.oauth2Client }
-							recordClick={ this.recordBackLinkClick }
-						/>
-					) }
-				</LoggedOutFormLinks>
+				{ ! this.props.isReskinned && (
+					<LoggedOutFormLinks>
+						<LoggedOutFormLinkItem href={ this.getLoginLink() }>
+							{ flowName === 'onboarding'
+								? translate( 'Log in to create a site for your existing account.' )
+								: translate( 'Already have a WordPress.com account?' ) }
+						</LoggedOutFormLinkItem>
+						{ this.props.oauth2Client && (
+							<LoggedOutFormBackLink
+								oauth2Client={ this.props.oauth2Client }
+								recordClick={ this.recordBackLinkClick }
+							/>
+						) }
+					</LoggedOutFormLinks>
+				) }
 				{ showRecaptchaToS && (
 					<div className="signup-form__recaptcha-tos">
 						<LoggedOutFormLinks>
@@ -909,16 +915,12 @@ class SignupForm extends Component {
 				'socialServiceResponse',
 			] );
 
-			const logInUrl = config.isEnabled( 'login/native-login-links' )
-				? this.getLoginLink()
-				: localizeUrl( config( 'login_url' ), this.props.locale );
-
 			return (
 				<CrowdsignalSignupForm
 					disabled={ this.props.disabled }
 					formFields={ this.formFields() }
 					handleSubmit={ this.handleSubmit }
-					loginLink={ logInUrl }
+					loginLink={ this.getLoginLink() }
 					oauth2Client={ this.props.oauth2Client }
 					recordBackLinkClick={ this.recordBackLinkClick }
 					submitting={ this.props.submitting }
@@ -935,10 +937,6 @@ class SignupForm extends Component {
 				isWooOAuth2Client( this.props.oauth2Client ) &&
 				this.props.wccomFrom )
 		) {
-			const logInUrl = config.isEnabled( 'login/native-login-links' )
-				? this.getLoginLink()
-				: localizeUrl( config( 'login_url' ), this.props.locale );
-
 			return (
 				<div className={ classNames( 'signup-form__woocommerce', this.props.className ) }>
 					<LoggedOutForm onSubmit={ this.handleWooCommerceSubmit } noValidate={ true }>
@@ -958,7 +956,7 @@ class SignupForm extends Component {
 					</LoggedOutForm>
 
 					{ this.props.footerLink || (
-						<LoggedOutFormLinkItem href={ logInUrl }>
+						<LoggedOutFormLinkItem href={ this.getLoginLink() }>
 							{ this.props.translate( 'Log in with an existing WordPress.com account' ) }
 						</LoggedOutFormLinkItem>
 					) }
@@ -985,17 +983,14 @@ class SignupForm extends Component {
 					{ this.props.formFooter || this.formFooter() }
 				</LoggedOutForm>
 
-				{ this.props.horizontal && (
-					<div className="signup-form__separator">
-						<span className="signup-form__separator-text">{ this.props.translate( 'or' ) }</span>
-					</div>
-				) }
+				{ this.props.horizontal && <div className="signup-form__separator"></div> }
 
 				{ this.props.isSocialSignupEnabled && ! this.userCreationComplete() && (
 					<SocialSignupForm
 						handleResponse={ this.props.handleSocialResponse }
 						socialService={ this.props.socialService }
 						socialServiceResponse={ this.props.socialServiceResponse }
+						isReskinned={ this.props.isReskinned }
 					/>
 				) }
 

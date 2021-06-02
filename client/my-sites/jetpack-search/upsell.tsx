@@ -2,7 +2,7 @@
  * External dependencies
  */
 import React, { ReactElement } from 'react';
-import { translate } from 'i18n-calypso';
+import { useTranslate } from 'i18n-calypso';
 import { useSelector } from 'react-redux';
 
 /**
@@ -17,7 +17,7 @@ import PromoCard from 'calypso/components/promo-section/promo-card';
 import PromoCardCTA from 'calypso/components/promo-section/promo-card/cta';
 import useTrackCallback from 'calypso/lib/jetpack/use-track-callback';
 import { getSelectedSiteSlug } from 'calypso/state/ui/selectors';
-import WhatIsJetpack from 'calypso/components/jetpack/what-is-jetpack';
+import JetpackSearchFooter from './footer';
 
 /**
  * Asset dependencies
@@ -27,6 +27,7 @@ import JetpackSearchSVG from 'calypso/assets/images/illustrations/jetpack-search
 export default function JetpackSearchUpsell(): ReactElement {
 	const onUpgradeClick = useTrackCallback( undefined, 'calypso_jetpack_search_upsell' );
 	const siteSlug = useSelector( getSelectedSiteSlug );
+	const translate = useTranslate();
 
 	return (
 		<Main className="jetpack-search">
@@ -67,7 +68,7 @@ export default function JetpackSearchUpsell(): ReactElement {
 				/>
 			</PromoCard>
 
-			<WhatIsJetpack />
+			<JetpackSearchFooter />
 		</Main>
 	);
 }

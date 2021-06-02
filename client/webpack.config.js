@@ -9,7 +9,6 @@
  */
 const path = require( 'path' );
 const webpack = require( 'webpack' );
-const ConfigFlagPlugin = require( '@automattic/webpack-config-flag-plugin' );
 const { BundleAnalyzerPlugin } = require( 'webpack-bundle-analyzer' );
 const CircularDependencyPlugin = require( 'circular-dependency-plugin' );
 const DuplicatePackageCheckerPlugin = require( 'duplicate-package-checker-webpack-plugin' );
@@ -22,7 +21,6 @@ const calypsoColorSchemes = require( '@automattic/calypso-color-schemes/js' );
 const TranspileConfig = require( '@automattic/calypso-build/webpack/transpile' );
 const {
 	cssNameFromFilename,
-	IncrementalProgressPlugin,
 	shouldTranspileDependency,
 } = require( '@automattic/calypso-build/webpack/util' );
 const ExtensiveLodashReplacementPlugin = require( '@automattic/webpack-extensive-lodash-replacement-plugin' );
@@ -44,14 +42,12 @@ const AssetsWriter = require( '../build-tools/webpack/assets-writer-plugin.js' )
 /**
  * Internal variables
  */
-const calypsoEnv = config( 'env_id' );
 const bundleEnv = config( 'env' );
 const isDevelopment = bundleEnv !== 'production';
 const shouldMinify =
 	process.env.MINIFY_JS === 'true' ||
 	( process.env.MINIFY_JS !== 'false' && bundleEnv === 'production' );
 const shouldEmitStats = process.env.EMIT_STATS && process.env.EMIT_STATS !== 'false';
-const shouldShowProgress = process.env.PROGRESS && process.env.PROGRESS !== 'false';
 const shouldEmitStatsWithReasons = process.env.EMIT_STATS === 'withreasons';
 const shouldCheckForDuplicatePackages = process.env.CHECK_DUPLICATE_PACKAGES === 'true';
 const shouldCheckForCycles = process.env.CHECK_CYCLES === 'true';
@@ -59,7 +55,6 @@ const shouldConcatenateModules = process.env.CONCATENATE_MODULES !== 'false';
 const shouldBuildChunksMap =
 	process.env.BUILD_TRANSLATION_CHUNKS === 'true' ||
 	process.env.ENABLE_FEATURES === 'use-translation-chunks';
-const isDesktop = calypsoEnv === 'desktop' || calypsoEnv === 'desktop-development';
 
 const defaultBrowserslistEnv = 'evergreen';
 const browserslistEnv = process.env.BROWSERSLIST_ENV || defaultBrowserslistEnv;
@@ -138,7 +133,7 @@ if ( isDevelopment ) {
 const cssFilename = cssNameFromFilename( outputFilename );
 const cssChunkFilename = cssNameFromFilename( outputChunkFilename );
 
-const outputDir = path.resolve( isDesktop ? './desktop' : '.' );
+const outputDir = path.resolve( '.' );
 
 const fileLoader = FileConfig.loader(
 	// The server bundler express middleware serves assets from a hard-coded publicPath.
@@ -180,37 +175,24 @@ const webpackConfig = {
 	},
 	optimization: {
 		concatenateModules: ! isDevelopment && shouldConcatenateModules,
-		// Desktop: override removeAvailableModules and removeEmptyChunks to minimize resource/RAM usage.
-		removeAvailableModules: ! isDesktop,
-		removeEmptyChunks: ! isDesktop,
+		removeAvailableModules: true,
+		removeEmptyChunks: true,
 		splitChunks: {
 			chunks: 'all',
 			...( isDevelopment || shouldEmitStats ? {} : { name: false } ),
 			maxAsyncRequests: 20,
 			maxInitialRequests: 5,
 		},
-		runtimeChunk: isDesktop ? false : { name: 'runtime' },
+		runtimeChunk: { name: 'runtime' },
 		moduleIds: 'named',
 		chunkIds: isDevelopment || shouldEmitStats ? 'named' : 'deterministic',
 		minimize: shouldMinify,
 		minimizer: Minify( {
-			// Desktop: number of workers should *not* exceed # of vCPUs available.
-			// For both medium Machine and Docker images, number of vCPUs == 2.
-			// Ref: https://support.circleci.com/hc/en-us/articles/360038192673-NodeJS-Builds-or-Test-Suites-Fail-With-ENOMEM-or-a-Timeout
-			parallel: isDesktop ? 2 : workerCount,
+			parallel: workerCount,
 			// Note: terserOptions will override (Object.assign) default terser options in packages/calypso-build/webpack/minify.js
 			terserOptions: {
-				...( isDesktop
-					? {
-							ecma: 2017,
-							mangle: true,
-							compress: false,
-							safari10: false,
-					  }
-					: {
-							compress: true,
-							mangle: true,
-					  } ),
+				compress: true,
+				mangle: true,
 			},
 		} ),
 	},
@@ -222,6 +204,7 @@ const webpackConfig = {
 				configFile: path.resolve( 'babel.config.js' ),
 				cacheDirectory: path.resolve( cachePath, 'babel-client' ),
 				cacheIdentifier,
+				cacheCompression: false,
 				exclude: /node_modules\//,
 			} ),
 			TranspileConfig.loader( {
@@ -229,11 +212,16 @@ const webpackConfig = {
 				presets: [ require.resolve( '@automattic/calypso-build/babel/dependencies' ) ],
 				cacheDirectory: path.resolve( cachePath, 'babel-client' ),
 				cacheIdentifier,
+				cacheCompression: false,
 				include: shouldTranspileDependency,
 			} ),
 			SassConfig.loader( {
 				includePaths: [ __dirname ],
 				postCssOptions: {
+					// Do not use postcss.config.js. This ensure we have the final say on how PostCSS is used in calypso.
+					// This is required because Calypso imports `@automattic/notifications` and that package defines its
+					// own `postcss.config.js` that they use for their webpack bundling process.
+					config: false,
 					plugins: [
 						autoprefixerPlugin(),
 						browserslistEnv === 'defaults' &&
@@ -255,14 +243,6 @@ const webpackConfig = {
 				loader: 'html-loader',
 			},
 			fileLoader,
-			{
-				include: require.resolve( 'tinymce/tinymce' ),
-				use: 'exports-loader?window=tinymce',
-			},
-			{
-				test: /node_modules[/\\]tinymce/,
-				use: 'imports-loader?this=>window',
-			},
 		],
 	},
 	resolve: {
@@ -296,6 +276,7 @@ const webpackConfig = {
 			'process.env.NODE_ENV': JSON.stringify( bundleEnv ),
 			'process.env.NODE_DEBUG': JSON.stringify( process.env.NODE_DEBUG || false ),
 			'process.env.GUTENBERG_PHASE': JSON.stringify( 1 ),
+			'process.env.COMPONENT_SYSTEM_PHASE': JSON.stringify( 0 ),
 			'process.env.FORCE_REDUCED_MOTION': JSON.stringify(
 				!! process.env.FORCE_REDUCED_MOTION || false
 			),
@@ -338,13 +319,9 @@ const webpackConfig = {
 					chunkGroups: true,
 				},
 			} ),
-		shouldShowProgress && new IncrementalProgressPlugin(),
 		new MomentTimezoneDataPlugin( {
 			startYear: 2000,
 			cacheDir: path.resolve( cachePath, 'moment-timezone' ),
-		} ),
-		new ConfigFlagPlugin( {
-			flags: { desktop: config.isEnabled( 'desktop' ) },
 		} ),
 		new InlineConstantExportsPlugin( /\/client\/state\/action-types.js$/ ),
 		shouldBuildChunksMap &&
@@ -352,14 +329,13 @@ const webpackConfig = {
 				output: path.resolve( '.', `chunks-map.${ extraPath }.json` ),
 			} ),
 		new RequireChunkCallbackPlugin(),
-		...( ! config.isEnabled( 'desktop' )
-			? [
-					new webpack.NormalModuleReplacementPlugin(
-						/^calypso[/\\]lib[/\\]desktop$/,
-						'lodash/noop'
-					),
-			  ]
-			: [] ),
+		/*
+		 * ExPlat: Don't import the server logger when we are in the browser
+		 */
+		new webpack.NormalModuleReplacementPlugin(
+			/^calypso\/server\/lib\/logger$/,
+			'calypso/lib/explat/internals/logger-browser-replacement'
+		),
 		/*
 		 * Forcibly remove dashicon while we wait for better tree-shaking in `@wordpress/*`.
 		 */
