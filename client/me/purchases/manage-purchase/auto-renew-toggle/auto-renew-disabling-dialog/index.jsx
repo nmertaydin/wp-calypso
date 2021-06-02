@@ -244,7 +244,7 @@ class AutoRenewDisablingDialog extends Component {
 			},
 			{
 				action: 'confirm',
-				label: translate( 'Turn auto-renewal off' ),
+				label: translate( 'Turn off auto-renew' ),
 				onClick: this.onClickGeneralConfirm,
 				isPrimary: true,
 			},
