@@ -17,8 +17,8 @@ import {
 const quote =
 	'The foolish man seeks happiness in the distance. The wise grows it under his feet.\n— James Oppenheim';
 
-describe( DataHelper.createSuiteTitle( 'Likes' ), function () {
-	describe( 'New post', function () {
+describe( DataHelper.createSuiteTitle( 'Likes (Post)' ), function () {
+	describe( 'Like a new post', function () {
 		let postLikesComponent;
 		let gutenbergEditorPage;
 
@@ -56,7 +56,7 @@ describe( DataHelper.createSuiteTitle( 'Likes' ), function () {
 		} );
 	} );
 
-	describe( 'Existing post', function () {
+	describe( 'Like an existing post', function () {
 		let postLikesComponent;
 
 		it( 'Log in', async function () {
